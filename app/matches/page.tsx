@@ -30,6 +30,21 @@ interface Match {
   final_score: number
 }
 
+interface UserDetails {
+  uid: string
+  display_name: string
+  gender: string
+  sexual_orientation: string
+  age: number
+  race: string
+  religion: string
+  interests: string
+  dream_date: string
+  instagram_handle?: string
+  class_year?: string
+  [key: string]: any
+}
+
 export default function MatchesPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -37,7 +52,7 @@ export default function MatchesPage() {
   const [loadingMatches, setLoadingMatches] = useState(false)
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
   const [currentUserData, setCurrentUserData] = useState<any>(null)
-  const [currentMatchDetails, setCurrentMatchDetails] = useState<any>(null)
+  const [currentMatchDetails, setCurrentMatchDetails] = useState<UserDetails | null>(null)
   const [loadingMatchDetails, setLoadingMatchDetails] = useState(false)
   const router = useRouter()
 
@@ -103,6 +118,7 @@ export default function MatchesPage() {
 
   const fetchMatchDetails = async (matchUid: string) => {
     setLoadingMatchDetails(true)
+    setCurrentMatchDetails(null)
     console.log("[v0] Fetching match details for:", matchUid)
 
     try {
@@ -114,6 +130,13 @@ export default function MatchesPage() {
         body: JSON.stringify({ user_uid: matchUid }),
       })
 
+      if (!response.ok) {
+        console.error("[v0] Failed to fetch match details, status:", response.status)
+        setCurrentMatchDetails(null)
+        setLoadingMatchDetails(false)
+        return
+      }
+
       const data = await response.json()
       console.log("[v0] Match details received:", data)
 
@@ -121,21 +144,24 @@ export default function MatchesPage() {
       if (data.success === false) {
         console.log("[v0] Match details not found")
         setCurrentMatchDetails(null)
+        setLoadingMatchDetails(false)
         return
       }
 
       // The response is an array with a single user object with success: true
       if (Array.isArray(data) && data.length > 0 && data[0].success === true) {
         const matchData = data[0]
-        // Validate that we have the required fields
-        if (matchData.display_name && matchData.uid) {
+        console.log("[v0] Processing match data:", matchData)
+
+        if (matchData.uid) {
           setCurrentMatchDetails(matchData)
+          console.log("[v0] Match details set successfully")
         } else {
-          console.log("[v0] Match details missing required fields:", matchData)
+          console.log("[v0] Match details missing uid:", matchData)
           setCurrentMatchDetails(null)
         }
       } else {
-        console.log("[v0] Unexpected match details format")
+        console.log("[v0] Unexpected match details format:", data)
         setCurrentMatchDetails(null)
       }
     } catch (error) {
@@ -295,12 +321,14 @@ export default function MatchesPage() {
                     <div className="mb-6 text-center">
                       <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#F58DAA] to-[#fcc02d]">
                         <span className="text-4xl font-bold text-white">
-                          {currentMatchDetails?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                          {currentMatchDetails.display_name?.charAt(0)?.toUpperCase() || "?"}
                         </span>
                       </div>
-                      <h2 className="text-3xl font-bold text-[#222222]">{currentMatchDetails?.display_name || 'Unknown'}</h2>
+                      <h2 className="text-3xl font-bold text-[#222222]">
+                        {currentMatchDetails.display_name || "Unknown"}
+                      </h2>
                       <p className="mt-1 text-lg text-[#666666]">
-                        {currentMatchDetails?.age || '-'} • {currentMatchDetails?.gender || '-'}
+                        {currentMatchDetails.age || "N/A"} • {currentMatchDetails.gender || "N/A"}
                       </p>
                     </div>
 
@@ -317,31 +345,38 @@ export default function MatchesPage() {
                         <h3 className="mb-2 font-semibold text-[#222222]">About</h3>
                         <div className="space-y-2 text-[#666666]">
                           <p>
-                            <span className="font-medium">Gender:</span> {currentMatchDetails.gender}
+                            <span className="font-medium">Gender:</span> {currentMatchDetails.gender || "Not specified"}
                           </p>
                           <p>
-                            <span className="font-medium">Orientation:</span> {currentMatchDetails.sexual_orientation}
+                            <span className="font-medium">Orientation:</span>{" "}
+                            {currentMatchDetails.sexual_orientation || "Not specified"}
                           </p>
                           <p>
-                            <span className="font-medium">Age:</span> {currentMatchDetails.age}
+                            <span className="font-medium">Age:</span> {currentMatchDetails.age || "Not specified"}
                           </p>
                           <p>
-                            <span className="font-medium">Race:</span> {currentMatchDetails.race}
+                            <span className="font-medium">Race:</span> {currentMatchDetails.race || "Not specified"}
                           </p>
                           <p>
-                            <span className="font-medium">Religion:</span> {currentMatchDetails.religion}
+                            <span className="font-medium">Religion:</span>{" "}
+                            {currentMatchDetails.religion || "Not specified"}
                           </p>
+                          {currentMatchDetails.class_year && (
+                            <p>
+                              <span className="font-medium">Class Year:</span> {currentMatchDetails.class_year}
+                            </p>
+                          )}
                         </div>
                       </div>
 
                       <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
                         <h3 className="mb-2 font-semibold text-[#222222]">Interests</h3>
-                        <p className="text-[#666666]">{currentMatchDetails.interests}</p>
+                        <p className="text-[#666666]">{currentMatchDetails.interests || "No interests listed"}</p>
                       </div>
 
                       <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
                         <h3 className="mb-2 font-semibold text-[#222222]">Dream Date</h3>
-                        <p className="text-[#666666]">{currentMatchDetails.dream_date}</p>
+                        <p className="text-[#666666]">{currentMatchDetails.dream_date || "No dream date described"}</p>
                       </div>
                     </div>
                   </div>
@@ -353,6 +388,7 @@ export default function MatchesPage() {
                   onClick={handleNo}
                   variant="outline"
                   className="h-16 w-32 rounded-full border-2 border-red-500 bg-transparent text-xl font-bold text-red-500 hover:bg-red-50"
+                  disabled={loadingMatchDetails}
                 >
                   No
                 </Button>
@@ -364,6 +400,7 @@ export default function MatchesPage() {
                 <Button
                   onClick={handleYes}
                   className="h-16 w-32 rounded-full bg-green-500 text-xl font-bold text-white hover:bg-green-600"
+                  disabled={loadingMatchDetails}
                 >
                   Yes
                 </Button>
