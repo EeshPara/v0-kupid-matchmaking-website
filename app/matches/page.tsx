@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Header } from "@/components/header"
 import { createBrowserSupabaseClient } from "@/lib/supabase/client"
-import { Heart, Loader2, Sparkles, Instagram, Star } from "lucide-react"
+import { Heart, Loader2, Sparkles, Instagram, Star, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -54,6 +54,7 @@ export default function MatchesPage() {
   const [currentUserData, setCurrentUserData] = useState<any>(null)
   const [currentMatchDetails, setCurrentMatchDetails] = useState<UserDetails | null>(null)
   const [loadingMatchDetails, setLoadingMatchDetails] = useState(false)
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -96,14 +97,12 @@ export default function MatchesPage() {
       const data = await response.json()
       console.log("[v0] User data received:", data)
 
-      // Check if user was not found (success: false)
       if (data.success === false) {
         console.log("[v0] User not found in database")
         setCurrentUserData(null)
         return
       }
 
-      // The response is an array with a single user object with success: true
       if (Array.isArray(data) && data.length > 0 && data[0].success === true) {
         setCurrentUserData(data[0])
       } else {
@@ -122,7 +121,6 @@ export default function MatchesPage() {
     console.log("[v0] Fetching match details for metadata ID:", matchUid)
 
     try {
-      // Use document-to-user endpoint since matchUid is a document_metadata ID
       const response = await fetch("/api/document-to-user", {
         method: "POST",
         headers: {
@@ -141,15 +139,12 @@ export default function MatchesPage() {
       const data = await response.json()
       console.log("[v0] Match details received from document-to-user:", data)
 
-      // Document-to-user always returns successfully with user data in same format as get-user
-      // It can be a plain object or wrapped in array
       if (Array.isArray(data) && data.length > 0) {
         const matchData = data[0]
         console.log("[v0] Processing match data (array format):", matchData)
         setCurrentMatchDetails(matchData)
         console.log("[v0] Match details set successfully")
-      } else if (data && typeof data === 'object' && data.uid) {
-        // Plain object format
+      } else if (data && typeof data === "object" && data.uid) {
         console.log("[v0] Processing match data (object format):", data)
         setCurrentMatchDetails(data)
         console.log("[v0] Match details set successfully")
@@ -194,7 +189,6 @@ export default function MatchesPage() {
         setMatches(sortedMatches)
         setCurrentMatchIndex(0)
 
-        // Fetch details for the first match
         if (sortedMatches.length > 0) {
           console.log("[v0] Calling fetchMatchDetails with UID:", sortedMatches[0].uid)
           await fetchMatchDetails(sortedMatches[0].uid)
@@ -207,7 +201,6 @@ export default function MatchesPage() {
     }
   }
 
-  // Fetch match details when current match index changes
   useEffect(() => {
     if (matches.length > 0 && currentMatchIndex < matches.length) {
       const currentMatch = matches[currentMatchIndex]
@@ -218,11 +211,9 @@ export default function MatchesPage() {
   const handleYes = async () => {
     console.log("[v0] Yes clicked for match:", currentMatch?.uid)
 
-    // Disable the buttons by setting loading state
     setLoadingMatchDetails(true)
 
     try {
-      // Send invite before moving to next match
       const response = await fetch("/api/send-invite", {
         method: "POST",
         headers: {
@@ -236,20 +227,20 @@ export default function MatchesPage() {
 
       if (!response.ok) {
         console.error("[v0] Failed to send invite:", response.status)
-        // Continue to next match even if invite fails
       } else {
         console.log("[v0] Invite sent successfully")
+        setShowSuccessPopup(true)
+        setTimeout(() => {
+          setShowSuccessPopup(false)
+        }, 3000)
       }
     } catch (error) {
       console.error("[v0] Error sending invite:", error)
-      // Continue to next match even if invite fails
     } finally {
-      // Move to next match after invite completes
       setLoadingMatchDetails(false)
       if (currentMatchIndex < matches.length - 1) {
         setCurrentMatchIndex(currentMatchIndex + 1)
       } else {
-        // No more matches, reset to show reprompt screen
         setCurrentMatchIndex(matches.length)
       }
     }
@@ -259,7 +250,6 @@ export default function MatchesPage() {
     if (currentMatchIndex < matches.length - 1) {
       setCurrentMatchIndex(currentMatchIndex + 1)
     } else {
-      // No more matches, reset to show reprompt screen
       setCurrentMatchIndex(matches.length)
     }
   }
@@ -281,6 +271,25 @@ export default function MatchesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-[#F58DAA]/5 to-[#fcc02d]/5">
       <Header />
+
+      {showSuccessPopup && (
+        <div className="fixed left-1/2 top-24 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-top-5 duration-300">
+          <div className="flex items-center gap-3 rounded-full border-2 border-green-500 bg-white px-6 py-4 shadow-2xl">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500">
+              <Heart className="h-5 w-5 text-white" fill="white" />
+            </div>
+            <p className="text-lg font-semibold text-[#222222]">Calendar invite sent!</p>
+            <button
+              onClick={() => setShowSuccessPopup(false)}
+              className="ml-2 rounded-full p-1 hover:bg-gray-100 transition-colors"
+              aria-label="Close notification"
+            >
+              <X className="h-5 w-5 text-[#666666]" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="container mx-auto px-6 py-12">
         <div className="mx-auto max-w-4xl">
           <div className="mb-8 text-center">
