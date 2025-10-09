@@ -36,6 +36,7 @@ export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([])
   const [loadingMatches, setLoadingMatches] = useState(false)
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
+  const [currentUserData, setCurrentUserData] = useState<any>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -56,11 +57,47 @@ export default function MatchesPage() {
       setUser(user)
       setLoading(false)
 
+      await fetchUserData(user.id)
       await fetchMatches(user.id)
     }
 
     checkAuth()
   }, [router])
+
+  const fetchUserData = async (userId: string) => {
+    console.log("[v0] Fetching user data for:", userId)
+
+    try {
+      const response = await fetch("/api/get-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ user_uid: userId }),
+      })
+
+      const data = await response.json()
+      console.log("[v0] User data received:", data)
+
+      // Check if user was not found (success: false)
+      if (data.success === false) {
+        console.log("[v0] User not found in database")
+        setCurrentUserData(null)
+        return
+      }
+
+      // The response is an array with a single user object with success: true
+      if (Array.isArray(data) && data.length > 0 && data[0].success === true) {
+        setCurrentUserData(data[0])
+      } else {
+        console.log("[v0] Unexpected user data format")
+        setCurrentUserData(null)
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching user data:", error)
+      setCurrentUserData(null)
+    }
+  }
 
   const fetchMatches = async (userId: string) => {
     setLoadingMatches(true)
@@ -165,6 +202,7 @@ export default function MatchesPage() {
               <Button
                 onClick={() => {
                   setCurrentMatchIndex(0)
+                  fetchUserData(user.id)
                   fetchMatches(user.id)
                 }}
                 className="rounded-full bg-[#F58DAA] px-8 py-3 text-white hover:bg-[#F9A6BD]"

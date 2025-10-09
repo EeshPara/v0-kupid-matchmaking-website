@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cat:*)",
       "Bash(if exist .next rmdir /s /q .next)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

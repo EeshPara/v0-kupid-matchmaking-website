@@ -54,6 +54,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
+  const [isCheckingUser, setIsCheckingUser] = useState(true)
   const [error, setError] = useState<string>("")
   const [userId, setUserId] = useState<string>("")
   const router = useRouter()
@@ -194,6 +195,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const initUser = async () => {
+      setIsCheckingUser(true)
       const supabase = createBrowserSupabaseClient()
       const {
         data: { user },
@@ -203,11 +205,46 @@ export default function OnboardingPage() {
         console.log("[v0] User authenticated:", user.email)
         setUserId(user.id)
         updateData("email", user.email || "")
+
+        // Check if user already exists in database
+        console.log("[v0] Checking if user already exists in database...")
+        try {
+          const response = await fetch("/api/get-user", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ user_uid: user.id }),
+          })
+
+          const data = await response.json()
+          console.log("[v0] Get user response:", data)
+
+          // If user exists (array with success: true), redirect to matches
+          if (Array.isArray(data) && data.length > 0 && data[0].success === true) {
+            console.log("[v0] User already exists in database, redirecting to matches...")
+            router.push("/matches")
+            return // Keep loading screen while redirecting
+          } else if (data.success === false) {
+            console.log("[v0] User does not exist in database, staying on onboarding page")
+          } else {
+            console.log("[v0] Unexpected response format, staying on onboarding page")
+          }
+        } catch (error) {
+          console.error("[v0] Error checking if user exists:", error)
+          // If there's an error, stay on onboarding page
+        }
       }
+
+      setIsCheckingUser(false)
     }
 
     initUser()
   }, [router])
+
+  if (isCheckingUser) {
+    return <div className="fixed inset-0 z-50 bg-white" />
+  }
 
   if (isLoading) {
     return (
