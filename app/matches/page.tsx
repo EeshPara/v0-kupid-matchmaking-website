@@ -37,6 +37,8 @@ export default function MatchesPage() {
   const [loadingMatches, setLoadingMatches] = useState(false)
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
   const [currentUserData, setCurrentUserData] = useState<any>(null)
+  const [currentMatchDetails, setCurrentMatchDetails] = useState<any>(null)
+  const [loadingMatchDetails, setLoadingMatchDetails] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -99,6 +101,51 @@ export default function MatchesPage() {
     }
   }
 
+  const fetchMatchDetails = async (matchUid: string) => {
+    setLoadingMatchDetails(true)
+    console.log("[v0] Fetching match details for:", matchUid)
+
+    try {
+      const response = await fetch("/api/get-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ user_uid: matchUid }),
+      })
+
+      const data = await response.json()
+      console.log("[v0] Match details received:", data)
+
+      // Check if user was not found (success: false)
+      if (data.success === false) {
+        console.log("[v0] Match details not found")
+        setCurrentMatchDetails(null)
+        return
+      }
+
+      // The response is an array with a single user object with success: true
+      if (Array.isArray(data) && data.length > 0 && data[0].success === true) {
+        const matchData = data[0]
+        // Validate that we have the required fields
+        if (matchData.display_name && matchData.uid) {
+          setCurrentMatchDetails(matchData)
+        } else {
+          console.log("[v0] Match details missing required fields:", matchData)
+          setCurrentMatchDetails(null)
+        }
+      } else {
+        console.log("[v0] Unexpected match details format")
+        setCurrentMatchDetails(null)
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching match details:", error)
+      setCurrentMatchDetails(null)
+    } finally {
+      setLoadingMatchDetails(false)
+    }
+  }
+
   const fetchMatches = async (userId: string) => {
     setLoadingMatches(true)
     console.log("[v0] Fetching matches for user:", userId)
@@ -123,6 +170,11 @@ export default function MatchesPage() {
         const sortedMatches = data.matches.sort((a: Match, b: Match) => b.final_score - a.final_score)
         setMatches(sortedMatches)
         setCurrentMatchIndex(0)
+
+        // Fetch details for the first match
+        if (sortedMatches.length > 0) {
+          await fetchMatchDetails(sortedMatches[0].uid)
+        }
       }
     } catch (error) {
       console.error("[v0] Error fetching matches:", error)
@@ -130,6 +182,14 @@ export default function MatchesPage() {
       setLoadingMatches(false)
     }
   }
+
+  // Fetch match details when current match index changes
+  useEffect(() => {
+    if (matches.length > 0 && currentMatchIndex < matches.length) {
+      const currentMatch = matches[currentMatchIndex]
+      fetchMatchDetails(currentMatch.uid)
+    }
+  }, [currentMatchIndex, matches])
 
   const handleYes = () => {
     if (currentMatchIndex < matches.length - 1) {
@@ -214,72 +274,79 @@ export default function MatchesPage() {
 
           {!loadingMatches && matches.length > 0 && !noMoreMatches && currentMatch && (
             <div className="space-y-6">
-              <Card className="overflow-hidden border-2 border-[#F58DAA]/20 shadow-xl">
-                <div className="bg-gradient-to-r from-[#F58DAA] to-[#fcc02d] p-4 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <Star className="h-6 w-6 text-white" fill="white" />
-                    <span className="text-2xl font-bold text-white">
-                      {Math.round(currentMatch.final_score * 100)}% Match
-                    </span>
-                    <Star className="h-6 w-6 text-white" fill="white" />
-                  </div>
-                </div>
-
-                <div className="p-8">
-                  <div className="mb-6 text-center">
-                    <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#F58DAA] to-[#fcc02d]">
-                      <span className="text-4xl font-bold text-white">
-                        {currentMatch.display_name.charAt(0).toUpperCase()}
+              {loadingMatchDetails || !currentMatchDetails ? (
+                <Card className="overflow-hidden border-2 border-[#F58DAA]/20 p-12 text-center shadow-xl">
+                  <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-[#F58DAA]" />
+                  <p className="text-lg text-[#666666]">Loading match details...</p>
+                </Card>
+              ) : (
+                <Card className="overflow-hidden border-2 border-[#F58DAA]/20 shadow-xl">
+                  <div className="bg-gradient-to-r from-[#F58DAA] to-[#fcc02d] p-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Star className="h-6 w-6 text-white" fill="white" />
+                      <span className="text-2xl font-bold text-white">
+                        {Math.round(currentMatch.final_score * 100)}% Match
                       </span>
+                      <Star className="h-6 w-6 text-white" fill="white" />
                     </div>
-                    <h2 className="text-3xl font-bold text-[#222222]">{currentMatch.display_name}</h2>
-                    <p className="mt-1 text-lg text-[#666666]">
-                      {currentMatch.age} • {currentMatch.gender}
-                    </p>
                   </div>
 
-                  <div className="mb-6 rounded-2xl bg-gradient-to-r from-[#F58DAA]/10 to-[#fcc02d]/10 p-6 text-center">
-                    <Instagram className="mx-auto mb-2 h-8 w-8 text-[#F58DAA]" />
-                    <p className="text-2xl font-bold text-[#F58DAA]">
-                      @{currentMatch.instagram_handle || "instagram_placeholder"}
-                    </p>
-                    <p className="mt-1 text-sm text-[#666666]">Connect on Instagram</p>
-                  </div>
+                  <div className="p-8">
+                    <div className="mb-6 text-center">
+                      <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#F58DAA] to-[#fcc02d]">
+                        <span className="text-4xl font-bold text-white">
+                          {currentMatchDetails?.display_name?.charAt(0)?.toUpperCase() || '?'}
+                        </span>
+                      </div>
+                      <h2 className="text-3xl font-bold text-[#222222]">{currentMatchDetails?.display_name || 'Unknown'}</h2>
+                      <p className="mt-1 text-lg text-[#666666]">
+                        {currentMatchDetails?.age || '-'} • {currentMatchDetails?.gender || '-'}
+                      </p>
+                    </div>
 
-                  <div className="space-y-4">
-                    <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
-                      <h3 className="mb-2 font-semibold text-[#222222]">About</h3>
-                      <div className="space-y-2 text-[#666666]">
-                        <p>
-                          <span className="font-medium">Gender:</span> {currentMatch.gender}
-                        </p>
-                        <p>
-                          <span className="font-medium">Orientation:</span> {currentMatch.sexual_orientation}
-                        </p>
-                        <p>
-                          <span className="font-medium">Age:</span> {currentMatch.age}
-                        </p>
-                        <p>
-                          <span className="font-medium">Race:</span> {currentMatch.race}
-                        </p>
-                        <p>
-                          <span className="font-medium">Religion:</span> {currentMatch.religion}
-                        </p>
+                    <div className="mb-6 rounded-2xl bg-gradient-to-r from-[#F58DAA]/10 to-[#fcc02d]/10 p-6 text-center">
+                      <Instagram className="mx-auto mb-2 h-8 w-8 text-[#F58DAA]" />
+                      <p className="text-2xl font-bold text-[#F58DAA]">
+                        @{currentMatchDetails.instagram_handle || "instagram_placeholder"}
+                      </p>
+                      <p className="mt-1 text-sm text-[#666666]">Connect on Instagram</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
+                        <h3 className="mb-2 font-semibold text-[#222222]">About</h3>
+                        <div className="space-y-2 text-[#666666]">
+                          <p>
+                            <span className="font-medium">Gender:</span> {currentMatchDetails.gender}
+                          </p>
+                          <p>
+                            <span className="font-medium">Orientation:</span> {currentMatchDetails.sexual_orientation}
+                          </p>
+                          <p>
+                            <span className="font-medium">Age:</span> {currentMatchDetails.age}
+                          </p>
+                          <p>
+                            <span className="font-medium">Race:</span> {currentMatchDetails.race}
+                          </p>
+                          <p>
+                            <span className="font-medium">Religion:</span> {currentMatchDetails.religion}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
+                        <h3 className="mb-2 font-semibold text-[#222222]">Interests</h3>
+                        <p className="text-[#666666]">{currentMatchDetails.interests}</p>
+                      </div>
+
+                      <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
+                        <h3 className="mb-2 font-semibold text-[#222222]">Dream Date</h3>
+                        <p className="text-[#666666]">{currentMatchDetails.dream_date}</p>
                       </div>
                     </div>
-
-                    <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
-                      <h3 className="mb-2 font-semibold text-[#222222]">Interests</h3>
-                      <p className="text-[#666666]">{currentMatch.interests}</p>
-                    </div>
-
-                    <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
-                      <h3 className="mb-2 font-semibold text-[#222222]">Dream Date</h3>
-                      <p className="text-[#666666]">{currentMatch.dream_date}</p>
-                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              )}
 
               <div className="flex items-center justify-center gap-4">
                 <Button
