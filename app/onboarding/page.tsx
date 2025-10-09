@@ -243,7 +243,74 @@ export default function OnboardingPage() {
   }, [router])
 
   if (isCheckingUser) {
-    return <div className="fixed inset-0 z-50 bg-white" />
+    return (
+      <div className="fixed inset-0 z-50 bg-gradient-to-br from-white via-[#FFF5F8] to-white">
+        <div className="flex h-full items-center justify-center">
+          <div className="relative flex flex-col items-center gap-8">
+            {/* Animated spinner circle */}
+            <div className="relative h-32 w-32">
+              {/* Outer rotating ring */}
+              <div
+                className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-[#F58DAA] border-r-[#F9A6BD]"
+                style={{ animationDuration: "1.5s" }}
+              />
+
+              {/* Middle rotating ring - opposite direction */}
+              <div
+                className="absolute inset-2 animate-spin rounded-full border-4 border-transparent border-b-[#F9A6BD] border-l-[#F58DAA]"
+                style={{ animationDuration: "2s", animationDirection: "reverse" }}
+              />
+
+              {/* Center heart */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Heart
+                  className="h-12 w-12 animate-pulse text-[#F58DAA]"
+                  fill="#F58DAA"
+                  style={{ animationDuration: "1.5s" }}
+                />
+              </div>
+            </div>
+
+            {/* Floating hearts decoration */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <Heart
+                className="absolute -left-24 -top-12 h-6 w-6 animate-bounce text-[#F9A6BD] opacity-60"
+                fill="#F9A6BD"
+                style={{ animationDelay: "0s", animationDuration: "2s" }}
+              />
+              <Heart
+                className="absolute -right-24 -top-8 h-5 w-5 animate-bounce text-[#F58DAA] opacity-40"
+                fill="#F58DAA"
+                style={{ animationDelay: "0.5s", animationDuration: "2.5s" }}
+              />
+              <Heart
+                className="absolute -left-20 top-20 h-4 w-4 animate-bounce text-[#ee81a8] opacity-50"
+                fill="#ee81a8"
+                style={{ animationDelay: "1s", animationDuration: "2.2s" }}
+              />
+              <Heart
+                className="absolute -right-20 top-16 h-7 w-7 animate-bounce text-[#F9A6BD] opacity-30"
+                fill="#F9A6BD"
+                style={{ animationDelay: "0.3s", animationDuration: "2.8s" }}
+              />
+            </div>
+
+            {/* Loading text */}
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-[#222222]">Getting things ready...</h2>
+              <p className="mt-2 animate-pulse text-gray-600">Preparing your Kupid experience</p>
+            </div>
+
+            {/* Animated dots */}
+            <div className="flex gap-2">
+              <div className="h-3 w-3 animate-bounce rounded-full bg-[#F58DAA]" style={{ animationDelay: "0s" }} />
+              <div className="h-3 w-3 animate-bounce rounded-full bg-[#F9A6BD]" style={{ animationDelay: "0.2s" }} />
+              <div className="h-3 w-3 animate-bounce rounded-full bg-[#ee81a8]" style={{ animationDelay: "0.4s" }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (isLoading) {
