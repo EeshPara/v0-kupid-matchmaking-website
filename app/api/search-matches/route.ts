@@ -34,6 +34,12 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
     console.log("[v0] API Route: Webhook success - found matches:", data.matches?.length || 0)
 
+    // Log the first match to see what fields are available
+    if (data.matches && data.matches.length > 0) {
+      console.log("[v0] API Route: First match data:", JSON.stringify(data.matches[0], null, 2))
+      console.log("[v0] API Route: First match keys:", Object.keys(data.matches[0]))
+    }
+
     return NextResponse.json(data)
   } catch (error) {
     console.error("[v0] API Route: Error:", error)

@@ -119,15 +119,16 @@ export default function MatchesPage() {
   const fetchMatchDetails = async (matchUid: string) => {
     setLoadingMatchDetails(true)
     setCurrentMatchDetails(null)
-    console.log("[v0] Fetching match details for:", matchUid)
+    console.log("[v0] Fetching match details for metadata ID:", matchUid)
 
     try {
-      const response = await fetch("/api/get-user", {
+      // Use document-to-user endpoint since matchUid is a document_metadata ID
+      const response = await fetch("/api/document-to-user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ user_uid: matchUid }),
+        body: JSON.stringify({ document_metadata: matchUid }),
       })
 
       if (!response.ok) {
@@ -138,28 +139,20 @@ export default function MatchesPage() {
       }
 
       const data = await response.json()
-      console.log("[v0] Match details received:", data)
+      console.log("[v0] Match details received from document-to-user:", data)
 
-      // Check if user was not found (success: false)
-      if (data.success === false) {
-        console.log("[v0] Match details not found")
-        setCurrentMatchDetails(null)
-        setLoadingMatchDetails(false)
-        return
-      }
-
-      // The response is an array with a single user object with success: true
-      if (Array.isArray(data) && data.length > 0 && data[0].success === true) {
+      // Document-to-user always returns successfully with user data in same format as get-user
+      // It can be a plain object or wrapped in array
+      if (Array.isArray(data) && data.length > 0) {
         const matchData = data[0]
-        console.log("[v0] Processing match data:", matchData)
-
-        if (matchData.uid) {
-          setCurrentMatchDetails(matchData)
-          console.log("[v0] Match details set successfully")
-        } else {
-          console.log("[v0] Match details missing uid:", matchData)
-          setCurrentMatchDetails(null)
-        }
+        console.log("[v0] Processing match data (array format):", matchData)
+        setCurrentMatchDetails(matchData)
+        console.log("[v0] Match details set successfully")
+      } else if (data && typeof data === 'object' && data.uid) {
+        // Plain object format
+        console.log("[v0] Processing match data (object format):", data)
+        setCurrentMatchDetails(data)
+        console.log("[v0] Match details set successfully")
       } else {
         console.log("[v0] Unexpected match details format:", data)
         setCurrentMatchDetails(null)
@@ -174,7 +167,9 @@ export default function MatchesPage() {
 
   const fetchMatches = async (userId: string) => {
     setLoadingMatches(true)
-    console.log("[v0] Fetching matches for user:", userId)
+    console.log("[v0] fetchMatches called with userId:", userId)
+    console.log("[v0] userId type:", typeof userId)
+    console.log("[v0] Sending to API:", { user_uid: userId })
 
     try {
       const response = await fetch("/api/search-matches", {
@@ -194,11 +189,14 @@ export default function MatchesPage() {
 
       if (data.matches && Array.isArray(data.matches)) {
         const sortedMatches = data.matches.sort((a: Match, b: Match) => b.final_score - a.final_score)
+        console.log("[v0] Sorted matches:", sortedMatches)
+        console.log("[v0] First match UID:", sortedMatches[0]?.uid)
         setMatches(sortedMatches)
         setCurrentMatchIndex(0)
 
         // Fetch details for the first match
         if (sortedMatches.length > 0) {
+          console.log("[v0] Calling fetchMatchDetails with UID:", sortedMatches[0].uid)
           await fetchMatchDetails(sortedMatches[0].uid)
         }
       }
@@ -217,12 +215,43 @@ export default function MatchesPage() {
     }
   }, [currentMatchIndex, matches])
 
-  const handleYes = () => {
-    if (currentMatchIndex < matches.length - 1) {
-      setCurrentMatchIndex(currentMatchIndex + 1)
-    } else {
-      // No more matches, reset to show reprompt screen
-      setCurrentMatchIndex(matches.length)
+  const handleYes = async () => {
+    console.log("[v0] Yes clicked for match:", currentMatch?.uid)
+
+    // Disable the buttons by setting loading state
+    setLoadingMatchDetails(true)
+
+    try {
+      // Send invite before moving to next match
+      const response = await fetch("/api/send-invite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id_1: user.id,
+          user_id_2: currentMatchDetails?.uid,
+        }),
+      })
+
+      if (!response.ok) {
+        console.error("[v0] Failed to send invite:", response.status)
+        // Continue to next match even if invite fails
+      } else {
+        console.log("[v0] Invite sent successfully")
+      }
+    } catch (error) {
+      console.error("[v0] Error sending invite:", error)
+      // Continue to next match even if invite fails
+    } finally {
+      // Move to next match after invite completes
+      setLoadingMatchDetails(false)
+      if (currentMatchIndex < matches.length - 1) {
+        setCurrentMatchIndex(currentMatchIndex + 1)
+      } else {
+        // No more matches, reset to show reprompt screen
+        setCurrentMatchIndex(matches.length)
+      }
     }
   }
 

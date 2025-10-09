@@ -51,6 +51,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Invalid response from webhook" }, { status: 500 })
     }
 
+    // Check if response has nested data property (n8n format)
+    if (responseData.data && !Array.isArray(responseData)) {
+      if (responseData.data.success === false) {
+        console.log("[v0] API Route: User not found in database (nested data object)")
+        return NextResponse.json({ success: false, message: responseData.data.message || "User not found" }, { status: 404 })
+      }
+      if (responseData.data.success === true) {
+        console.log("[v0] API Route: User data received successfully (nested data object)")
+        return NextResponse.json([responseData.data])
+      }
+    }
+
     // Check if it's a plain object with success: false (error case)
     if (responseData.success === false && !Array.isArray(responseData)) {
       console.log("[v0] API Route: User not found in database")
