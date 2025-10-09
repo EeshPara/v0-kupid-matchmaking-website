@@ -4,43 +4,12 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { OnboardingModal } from "./onboarding-modal"
-import { createBrowserSupabaseClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
 
 export function Hero() {
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const router = useRouter()
 
-  const handleJoinClick = async () => {
-    const supabase = createBrowserSupabaseClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (user) {
-      console.log("[v0] User is authenticated, checking onboarding status...")
-
-      try {
-        const response = await fetch("/api/check-onboarding")
-
-        const { onboardingComplete } = await response.json()
-
-        if (onboardingComplete) {
-          console.log("[v0] Onboarding complete, redirecting to matches")
-          router.push("/matches")
-        } else {
-          console.log("[v0] Onboarding incomplete, opening modal")
-          setIsModalOpen(true)
-        }
-      } catch (error) {
-        console.error("[v0] Error checking onboarding status:", error)
-        // If check fails, open modal to be safe
-        setIsModalOpen(true)
-      }
-    } else {
-      console.log("[v0] User is not authenticated, opening onboarding modal")
-      setIsModalOpen(true)
-    }
+  const handleJoinClick = () => {
+    setIsModalOpen(true)
   }
 
   return (

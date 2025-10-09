@@ -46,53 +46,8 @@ export async function GET(request: Request) {
       console.log("[v0] Session created successfully for user:", data.user?.email)
       console.log("[v0] User ID:", data.user?.id)
 
-      console.log("[v0] Checking if user exists in database via webhook...")
-      try {
-        const webhookResponse = await fetch("https://graysonlee.app.n8n.cloud/webhook/getuser", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          body: JSON.stringify({ user_uid: data.user?.id }),
-        })
-
-        if (!webhookResponse.ok) {
-          console.log("[v0] Webhook call failed, user needs onboarding")
-          return NextResponse.redirect(`${origin}/?onboarding=true`)
-        }
-
-        const userData = await webhookResponse.json()
-        console.log("[v0] User data received:", JSON.stringify(userData).substring(0, 100))
-
-        // Check if user exists and has completed onboarding
-        const userExists = userData && !Array.isArray(userData) && Object.keys(userData).length > 0
-
-        if (!userExists) {
-          console.log("[v0] User does not exist in database, needs onboarding")
-          return NextResponse.redirect(`${origin}/?onboarding=true`)
-        }
-
-        // Check if user has all required fields
-        const requiredFields = ["display_name", "class_year", "gender", "age", "interests", "dream_date"]
-        const hasAllFields = requiredFields.every((field) => {
-          const hasField = !!userData[field]
-          if (!hasField) {
-            console.log(`[v0] Missing required field: ${field}`)
-          }
-          return hasField
-        })
-
-        if (!hasAllFields) {
-          console.log("[v0] User exists but onboarding incomplete, needs to complete onboarding")
-          return NextResponse.redirect(`${origin}/?onboarding=true`)
-        }
-
-        console.log("[v0] User found in database with complete profile, redirecting to matches")
-        return NextResponse.redirect(`${origin}/matches`)
-      } catch (webhookError) {
-        console.error("[v0] Error calling webhook:", webhookError)
-        console.log("[v0] Assuming user needs onboarding due to webhook error")
-        return NextResponse.redirect(`${origin}/?onboarding=true`)
-      }
+      console.log("[v0] Redirecting to onboarding page...")
+      return NextResponse.redirect(`${origin}/onboarding`)
     } catch (err) {
       console.error("[v0] Auth callback error:", err)
       return NextResponse.redirect(`${origin}/?error=callback_error`)
