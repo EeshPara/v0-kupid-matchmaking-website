@@ -56,7 +56,6 @@ export default function MatchesPage() {
       setUser(user)
       setLoading(false)
 
-      // Fetch matches
       await fetchMatches(user.id)
     }
 
@@ -84,7 +83,9 @@ export default function MatchesPage() {
       console.log("[v0] Matches received:", data)
 
       if (data.matches && Array.isArray(data.matches)) {
-        setMatches(data.matches)
+        const sortedMatches = data.matches.sort((a: Match, b: Match) => b.final_score - a.final_score)
+        setMatches(sortedMatches)
+        setCurrentMatchIndex(0)
       }
     } catch (error) {
       console.error("[v0] Error fetching matches:", error)
@@ -93,15 +94,21 @@ export default function MatchesPage() {
     }
   }
 
-  const handleNextMatch = () => {
+  const handleYes = () => {
     if (currentMatchIndex < matches.length - 1) {
       setCurrentMatchIndex(currentMatchIndex + 1)
+    } else {
+      // No more matches, reset to show reprompt screen
+      setCurrentMatchIndex(matches.length)
     }
   }
 
-  const handlePreviousMatch = () => {
-    if (currentMatchIndex > 0) {
-      setCurrentMatchIndex(currentMatchIndex - 1)
+  const handleNo = () => {
+    if (currentMatchIndex < matches.length - 1) {
+      setCurrentMatchIndex(currentMatchIndex + 1)
+    } else {
+      // No more matches, reset to show reprompt screen
+      setCurrentMatchIndex(matches.length)
     }
   }
 
@@ -117,13 +124,13 @@ export default function MatchesPage() {
   }
 
   const currentMatch = matches[currentMatchIndex]
+  const noMoreMatches = currentMatchIndex >= matches.length
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-[#F58DAA]/5 to-[#fcc02d]/5">
       <Header />
       <main className="container mx-auto px-6 py-12">
         <div className="mx-auto max-w-4xl">
-          {/* Header */}
           <div className="mb-8 text-center">
             <div className="relative inline-block">
               <Heart className="mx-auto mb-4 h-16 w-16 text-[#F58DAA]" fill="#F58DAA" />
@@ -137,7 +144,6 @@ export default function MatchesPage() {
             </p>
           </div>
 
-          {/* Loading State */}
           {loadingMatches && (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="mb-4 h-12 w-12 animate-spin text-[#F58DAA]" />
@@ -145,29 +151,32 @@ export default function MatchesPage() {
             </div>
           )}
 
-          {/* No Matches State */}
-          {!loadingMatches && matches.length === 0 && (
+          {!loadingMatches && (matches.length === 0 || noMoreMatches) && (
             <Card className="border-2 border-[#F58DAA]/20 p-12 text-center">
               <Heart className="mx-auto mb-4 h-16 w-16 text-[#F58DAA]/30" />
-              <h2 className="mb-2 text-2xl font-bold text-[#222222]">No Matches Yet</h2>
+              <h2 className="mb-2 text-2xl font-bold text-[#222222]">
+                {matches.length === 0 ? "No Matches Yet" : "No More Matches"}
+              </h2>
               <p className="mb-6 text-lg text-[#666666]">
-                We're still searching for your perfect matches. Check back soon!
+                {matches.length === 0
+                  ? "There are no matches currently. Try searching again!"
+                  : "You've seen all your matches! Search again to find more."}
               </p>
               <Button
-                onClick={() => fetchMatches(user.id)}
+                onClick={() => {
+                  setCurrentMatchIndex(0)
+                  fetchMatches(user.id)
+                }}
                 className="rounded-full bg-[#F58DAA] px-8 py-3 text-white hover:bg-[#F9A6BD]"
               >
-                Refresh Matches
+                Reprompt for Matches
               </Button>
             </Card>
           )}
 
-          {/* Match Display */}
-          {!loadingMatches && matches.length > 0 && currentMatch && (
+          {!loadingMatches && matches.length > 0 && !noMoreMatches && currentMatch && (
             <div className="space-y-6">
-              {/* Match Card */}
               <Card className="overflow-hidden border-2 border-[#F58DAA]/20 shadow-xl">
-                {/* Match Score Banner */}
                 <div className="bg-gradient-to-r from-[#F58DAA] to-[#fcc02d] p-4 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <Star className="h-6 w-6 text-white" fill="white" />
@@ -179,9 +188,8 @@ export default function MatchesPage() {
                 </div>
 
                 <div className="p-8">
-                  {/* Profile Header */}
                   <div className="mb-6 text-center">
-                    <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#F58DAA] to-[#fcc02d] mx-auto">
+                    <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#F58DAA] to-[#fcc02d]">
                       <span className="text-4xl font-bold text-white">
                         {currentMatch.display_name.charAt(0).toUpperCase()}
                       </span>
@@ -192,96 +200,67 @@ export default function MatchesPage() {
                     </p>
                   </div>
 
-                  {/* Instagram Handle - Prominent Display */}
-                  {currentMatch.instagram_handle && (
-                    <div className="mb-6 rounded-2xl bg-gradient-to-r from-[#F58DAA]/10 to-[#fcc02d]/10 p-6 text-center">
-                      <Instagram className="mx-auto mb-2 h-8 w-8 text-[#F58DAA]" />
-                      <a
-                        href={`https://instagram.com/${currentMatch.instagram_handle.replace("@", "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-2xl font-bold text-[#F58DAA] hover:underline"
-                      >
-                        @{currentMatch.instagram_handle.replace("@", "")}
-                      </a>
-                      <p className="mt-1 text-sm text-[#666666]">Connect on Instagram</p>
-                    </div>
-                  )}
+                  <div className="mb-6 rounded-2xl bg-gradient-to-r from-[#F58DAA]/10 to-[#fcc02d]/10 p-6 text-center">
+                    <Instagram className="mx-auto mb-2 h-8 w-8 text-[#F58DAA]" />
+                    <p className="text-2xl font-bold text-[#F58DAA]">
+                      @{currentMatch.instagram_handle || "instagram_placeholder"}
+                    </p>
+                    <p className="mt-1 text-sm text-[#666666]">Connect on Instagram</p>
+                  </div>
 
-                  {/* Profile Details */}
                   <div className="space-y-4">
-                    <div className="rounded-xl bg-white p-4 shadow-sm border border-[#F58DAA]/10">
+                    <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
                       <h3 className="mb-2 font-semibold text-[#222222]">About</h3>
                       <div className="space-y-2 text-[#666666]">
+                        <p>
+                          <span className="font-medium">Gender:</span> {currentMatch.gender}
+                        </p>
+                        <p>
+                          <span className="font-medium">Orientation:</span> {currentMatch.sexual_orientation}
+                        </p>
+                        <p>
+                          <span className="font-medium">Age:</span> {currentMatch.age}
+                        </p>
                         <p>
                           <span className="font-medium">Race:</span> {currentMatch.race}
                         </p>
                         <p>
                           <span className="font-medium">Religion:</span> {currentMatch.religion}
                         </p>
-                        <p>
-                          <span className="font-medium">Orientation:</span> {currentMatch.sexual_orientation}
-                        </p>
                       </div>
                     </div>
 
-                    <div className="rounded-xl bg-white p-4 shadow-sm border border-[#F58DAA]/10">
+                    <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
                       <h3 className="mb-2 font-semibold text-[#222222]">Interests</h3>
                       <p className="text-[#666666]">{currentMatch.interests}</p>
                     </div>
 
-                    <div className="rounded-xl bg-white p-4 shadow-sm border border-[#F58DAA]/10">
+                    <div className="rounded-xl border border-[#F58DAA]/10 bg-white p-4 shadow-sm">
                       <h3 className="mb-2 font-semibold text-[#222222]">Dream Date</h3>
                       <p className="text-[#666666]">{currentMatch.dream_date}</p>
-                    </div>
-
-                    {/* Score Breakdown */}
-                    <div className="rounded-xl bg-gradient-to-br from-[#F58DAA]/5 to-[#fcc02d]/5 p-4">
-                      <h3 className="mb-3 font-semibold text-[#222222]">Compatibility Breakdown</h3>
-                      <div className="space-y-2">
-                        {Object.entries(currentMatch.score_breakdown).map(([key, value]) => (
-                          <div key={key} className="flex items-center justify-between">
-                            <span className="text-sm capitalize text-[#666666]">{key.replace(/_/g, " ")}</span>
-                            <div className="flex items-center gap-2">
-                              <div className="h-2 w-24 overflow-hidden rounded-full bg-white">
-                                <div
-                                  className="h-full bg-gradient-to-r from-[#F58DAA] to-[#fcc02d]"
-                                  style={{ width: `${value * 100}%` }}
-                                />
-                              </div>
-                              <span className="text-sm font-medium text-[#222222]">{Math.round(value * 100)}%</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 </div>
               </Card>
 
-              {/* Navigation */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-center gap-4">
                 <Button
-                  onClick={handlePreviousMatch}
-                  disabled={currentMatchIndex === 0}
+                  onClick={handleNo}
                   variant="outline"
-                  className="rounded-full border-2 border-[#F58DAA] px-8 py-3 text-[#F58DAA] hover:bg-[#F58DAA]/10 disabled:opacity-50 bg-transparent"
+                  className="h-16 w-32 rounded-full border-2 border-red-500 bg-transparent text-xl font-bold text-red-500 hover:bg-red-50"
                 >
-                  ← Previous
+                  No
                 </Button>
-
                 <div className="text-center">
                   <p className="text-sm text-[#666666]">
                     Match {currentMatchIndex + 1} of {matches.length}
                   </p>
                 </div>
-
                 <Button
-                  onClick={handleNextMatch}
-                  disabled={currentMatchIndex === matches.length - 1}
-                  className="rounded-full bg-[#F58DAA] px-8 py-3 text-white hover:bg-[#F9A6BD] disabled:opacity-50"
+                  onClick={handleYes}
+                  className="h-16 w-32 rounded-full bg-green-500 text-xl font-bold text-white hover:bg-green-600"
                 >
-                  Next →
+                  Yes
                 </Button>
               </div>
             </div>

@@ -499,8 +499,8 @@ export default function OnboardingPage() {
                 <p className="text-center text-sm font-medium text-[#222222]">Now let's find your perfect match! 💕</p>
               </div>
               <h2 className="text-2xl font-bold text-[#222222]">What gender are you interested in?</h2>
-              <div className="grid grid-cols-2 gap-3">
-                {["male", "female", "non-binary", "any"].map((option) => (
+              <div className="grid grid-cols-3 gap-3">
+                {["male", "female", "both"].map((option) => (
                   <button
                     key={option}
                     onClick={() => updateData("pref_gender", option)}
