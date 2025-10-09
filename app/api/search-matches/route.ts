@@ -7,6 +7,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log("[v0] API Route: Received payload:", JSON.stringify(body, null, 2))
 
+    if (!body.user_uid) {
+      console.error("[v0] API Route: Missing user_uid in search request")
+      return NextResponse.json({ error: "user_uid is required" }, { status: 400 })
+    }
+
+    console.log("[v0] API Route: Searching for matches for user:", body.user_uid)
+
+    // Call n8n webhook to search for matches
     const response = await fetch("https://graysonlee.app.n8n.cloud/webhook/searchformatches", {
       method: "POST",
       headers: {
@@ -24,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json()
-    console.log("[v0] API Route: Webhook success:", data)
+    console.log("[v0] API Route: Webhook success - found matches:", data.matches?.length || 0)
 
     return NextResponse.json(data)
   } catch (error) {

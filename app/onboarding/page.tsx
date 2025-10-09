@@ -16,7 +16,7 @@ interface OnboardingData {
   display_name: string
   class_year: string
   gender: string
-  sexual_orientation: string[]
+  sexual_orientation: string
   age: string
   race: string
   religion: string
@@ -25,7 +25,7 @@ interface OnboardingData {
   budget: string
   instagram_handle: string
   pref_gender: string
-  pref_sexual_orientation: string[]
+  pref_sexual_orientation: string
   pref_age: string
   pref_class_year: string
   pref_race: string
@@ -48,7 +48,7 @@ const interestOptions = [
   "dancing",
 ]
 
-const orientationOptions = ["straight", "gay", "lesbian", "bisexual", "pansexual", "asexual", "other"]
+const orientationOptions = ["heterosexual", "homosexual", "bisexual"]
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1)
@@ -64,7 +64,7 @@ export default function OnboardingPage() {
     display_name: "",
     class_year: "",
     gender: "",
-    sexual_orientation: [],
+    sexual_orientation: "",
     age: "",
     race: "",
     religion: "",
@@ -73,7 +73,7 @@ export default function OnboardingPage() {
     budget: "",
     instagram_handle: "",
     pref_gender: "",
-    pref_sexual_orientation: [],
+    pref_sexual_orientation: "",
     pref_age: "",
     pref_class_year: "",
     pref_race: "",
@@ -85,7 +85,7 @@ export default function OnboardingPage() {
     setData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const toggleArrayItem = (field: "interests" | "sexual_orientation" | "pref_sexual_orientation", item: string) => {
+  const toggleArrayItem = (field: "interests", item: string) => {
     setData((prev) => ({
       ...prev,
       [field]: prev[field].includes(item) ? prev[field].filter((i) => i !== item) : [...prev[field], item],
@@ -113,17 +113,20 @@ export default function OnboardingPage() {
     setError("")
 
     try {
-      const uid = userId || crypto.randomUUID()
-      console.log("[v0] Using user UID:", uid)
+      if (!userId) {
+        throw new Error("User ID not found. Please sign in again.")
+      }
+
+      console.log("[v0] Using user UID from Supabase:", userId)
 
       console.log("[v0] STEP 1/2: Adding user to database...")
       const addUserPayload = {
-        uid: uid,
+        uid: userId,
         email: data.email,
         display_name: data.display_name,
         class_year: Number.parseInt(data.class_year),
         gender: data.gender,
-        sexual_orientation: data.sexual_orientation.join(", "),
+        sexual_orientation: data.sexual_orientation,
         age: Number.parseInt(data.age),
         race: data.race,
         religion: data.religion,
@@ -150,11 +153,10 @@ export default function OnboardingPage() {
 
       console.log("[v0] STEP 2/2: UPDATING USER PREFERENCES...")
       const updatePreferencesPayload = {
-        user_uid: uid,
+        user_uid: userId,
         pref_class_year: Number.parseInt(data.pref_class_year) || Number.parseInt(data.class_year),
         pref_gender: data.pref_gender || "any",
-        pref_sexual_orientation:
-          data.pref_sexual_orientation.length > 0 ? data.pref_sexual_orientation.join(", ") : "any",
+        pref_sexual_orientation: data.pref_sexual_orientation || "any",
         pref_age: data.pref_age || data.age,
         pref_race: data.pref_race || "Any",
         pref_religion: data.pref_religion || "Any",
@@ -176,7 +178,7 @@ export default function OnboardingPage() {
 
       console.log("[v0] ✓ Preferences updated successfully")
 
-      updateData("uid", uid)
+      updateData("uid", userId)
       setIsLoading(false)
       setIsComplete(true)
 
@@ -191,24 +193,20 @@ export default function OnboardingPage() {
   }
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const initUser = async () => {
       const supabase = createBrowserSupabaseClient()
       const {
         data: { user },
       } = await supabase.auth.getUser()
 
-      if (!user) {
-        console.log("[v0] User not authenticated, redirecting to home")
-        router.push("/")
-        return
+      if (user) {
+        console.log("[v0] User authenticated:", user.email)
+        setUserId(user.id)
+        updateData("email", user.email || "")
       }
-
-      console.log("[v0] User authenticated:", user.email)
-      setUserId(user.id)
-      updateData("email", user.email || "")
     }
 
-    checkAuth()
+    initUser()
   }, [router])
 
   if (isLoading) {
@@ -345,7 +343,7 @@ export default function OnboardingPage() {
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-[#222222]">How do you identify?</h2>
               <div className="grid grid-cols-2 gap-3">
-                {["male", "female", "non-binary", "other"].map((option) => (
+                {["male", "female"].map((option) => (
                   <button
                     key={option}
                     onClick={() => updateData("gender", option)}
@@ -365,14 +363,13 @@ export default function OnboardingPage() {
           {step === 4 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-[#222222]">Sexual Orientation</h2>
-              <p className="text-gray-600">Select all that apply</p>
               <div className="flex flex-wrap gap-3">
                 {orientationOptions.map((option) => (
                   <button
                     key={option}
-                    onClick={() => toggleArrayItem("sexual_orientation", option)}
+                    onClick={() => updateData("sexual_orientation", option)}
                     className={`rounded-full border-2 px-6 py-3 text-base font-medium transition-all ${
-                      data.sexual_orientation.includes(option)
+                      data.sexual_orientation === option
                         ? "border-[#F58DAA] bg-[#F58DAA] text-white"
                         : "border-gray-300 hover:border-[#F58DAA]"
                     }`}
@@ -523,14 +520,13 @@ export default function OnboardingPage() {
           {step === 12 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-[#222222]">Preferred Sexual Orientation</h2>
-              <p className="text-gray-600">Select all that apply</p>
               <div className="flex flex-wrap gap-3">
                 {[...orientationOptions, "any"].map((option) => (
                   <button
                     key={option}
-                    onClick={() => toggleArrayItem("pref_sexual_orientation", option)}
+                    onClick={() => updateData("pref_sexual_orientation", option)}
                     className={`rounded-full border-2 px-6 py-3 text-base font-medium transition-all ${
-                      data.pref_sexual_orientation.includes(option)
+                      data.pref_sexual_orientation === option
                         ? "border-[#F58DAA] bg-[#F58DAA] text-white"
                         : "border-gray-300 hover:border-[#F58DAA]"
                     }`}

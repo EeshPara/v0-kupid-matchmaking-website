@@ -33,40 +33,11 @@ export async function GET() {
 
     console.log("[v0] Checking onboarding for user:", user.id)
 
-    const response = await fetch("https://graysonlee.app.n8n.cloud/webhook/getuser", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({ user_uid: user.id }),
-    })
+    // TODO: Add n8n webhook call here
+    // Webhook URL: https://graysonlee.app.n8n.cloud/webhook/getuser
+    // Should check if user exists in database and has completed onboarding
 
-    if (!response.ok) {
-      console.log("[v0] Webhook call failed")
-      return NextResponse.json({ onboardingComplete: false })
-    }
-
-    const userData = await response.json()
-    console.log("[v0] User data received:", JSON.stringify(userData).substring(0, 100))
-
-    const userExists = userData && !Array.isArray(userData) && Object.keys(userData).length > 0
-
-    if (!userExists) {
-      console.log("[v0] User does not exist in database")
-      return NextResponse.json({ onboardingComplete: false })
-    }
-
-    const requiredFields = ["display_name", "class_year", "gender", "age", "interests", "dream_date"]
-
-    const hasAllFields = requiredFields.every((field) => {
-      const hasField = !!userData[field]
-      if (!hasField) {
-        console.log(`[v0] Missing required field: ${field}`)
-      }
-      return hasField
-    })
-
-    console.log("[v0] Onboarding complete:", hasAllFields)
-    return NextResponse.json({ onboardingComplete: hasAllFields })
+    return NextResponse.json({ onboardingComplete: false })
   } catch (error) {
     console.error("[v0] Error checking onboarding:", error)
     return NextResponse.json({ onboardingComplete: false })

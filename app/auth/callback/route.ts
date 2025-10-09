@@ -40,17 +40,21 @@ export async function GET(request: Request) {
 
       if (error) {
         console.error("[v0] Error exchanging code:", error.message)
-        return NextResponse.redirect(`${origin}/?error=auth_failed`)
+        console.error("[v0] Full error details:", error)
+        return NextResponse.redirect(`${origin}/?error=auth_failed&message=${encodeURIComponent(error.message)}`)
       }
 
       console.log("[v0] Session created successfully for user:", data.user?.email)
       console.log("[v0] User ID:", data.user?.id)
 
-      console.log("[v0] Redirecting to onboarding page...")
-      return NextResponse.redirect(`${origin}/onboarding`)
+      // Check for 'next' parameter to determine where to redirect
+      const next = searchParams.get("next") || "/onboarding"
+      console.log("[v0] Redirecting to:", next)
+      return NextResponse.redirect(`${origin}${next}`)
     } catch (err) {
       console.error("[v0] Auth callback error:", err)
-      return NextResponse.redirect(`${origin}/?error=callback_error`)
+      const errorMessage = err instanceof Error ? err.message : "Unknown error"
+      return NextResponse.redirect(`${origin}/?error=callback_error&message=${encodeURIComponent(errorMessage)}`)
     }
   }
 

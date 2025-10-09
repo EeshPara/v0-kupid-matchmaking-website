@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] API Route: Calling webhook to update preferences for user:", body.user_uid)
 
+    // Call n8n webhook to update user preferences
     const response = await fetch("https://graysonlee.app.n8n.cloud/webhook/updatepreferences", {
       method: "POST",
       headers: {
@@ -31,7 +32,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: errorText }, { status: response.status })
     }
 
-    const data = await response.json()
+    // Handle empty response from webhook
+    const responseText = await response.text()
+    let data = { success: true, message: "Preferences updated successfully" }
+
+    if (responseText) {
+      try {
+        data = JSON.parse(responseText)
+      } catch (e) {
+        console.log("[v0] API Route: Webhook returned non-JSON response, treating as success")
+      }
+    }
+
     console.log("[v0] API Route: SUCCESS - Webhook response:", data)
     console.log("[v0] API Route: Preferences successfully updated for user:", body.user_uid)
 

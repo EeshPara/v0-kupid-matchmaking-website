@@ -23,13 +23,17 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
       const supabase = createBrowserSupabaseClient()
       console.log("[v0] Supabase client created successfully")
 
-      const redirectUrl = `${window.location.origin}/auth/callback`
+      const redirectUrl = `${window.location.origin}/onboarding`
       console.log("[v0] Redirect URL:", redirectUrl)
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
 
