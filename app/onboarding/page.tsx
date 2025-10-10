@@ -234,6 +234,11 @@ export default function OnboardingPage() {
           console.error("[v0] Error checking if user exists:", error)
           // If there's an error, stay on onboarding page
         }
+      } else {
+        // No user is signed in, redirect to home page
+        console.log("[v0] No user authenticated, redirecting to home page...")
+        router.push("/")
+        return // Keep loading screen while redirecting
       }
 
       setIsCheckingUser(false)
