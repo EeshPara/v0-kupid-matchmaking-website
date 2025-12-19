@@ -14,45 +14,38 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] API Route: Fetching user for document_metadata:", body.document_metadata)
 
-    // Call n8n webhook to convert document metadata to user
-    const response = await fetch("https://graysonlee.app.n8n.cloud/webhook/documenttouser", {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Missing Supabase configuration")
+    }
+
+    // Call Supabase edge function
+    const response = await fetch(`${supabaseUrl}/functions/v1/document-to-user`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify(body),
     })
 
-    console.log("[v0] API Route: Webhook response status:", response.status)
+    console.log("[v0] API Route: Edge function response status:", response.status)
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error("[v0] API Route: Webhook error:", errorText)
+      console.error("[v0] API Route: Edge function error:", errorText)
       return NextResponse.json({ error: errorText }, { status: response.status })
     }
 
-    const responseText = await response.text()
-    console.log("[v0] API Route: Response text length:", responseText.length)
-    console.log("[v0] API Route: Response text (first 500 chars):", responseText.substring(0, 500))
+    const data = await response.json()
+    console.log("[v0] API Route: Parsed response data:", JSON.stringify(data, null, 2))
 
-    if (!responseText || responseText.trim() === "") {
-      console.log("[v0] API Route: Empty response from webhook")
-      return NextResponse.json({ error: "Empty response from webhook" }, { status: 500 })
-    }
-
-    let responseData
-    try {
-      responseData = JSON.parse(responseText)
-    } catch (e) {
-      console.error("[v0] API Route: Failed to parse JSON response:", responseText)
-      return NextResponse.json({ error: "Invalid response from webhook" }, { status: 500 })
-    }
-
-    console.log("[v0] API Route: Parsed response data:", JSON.stringify(responseData, null, 2))
-
-    // n8n now returns data directly without wrapper
+    // Edge function returns { data: { ...userData, success: true } }
     console.log("[v0] API Route: User data retrieved successfully for metadata:", body.document_metadata)
-    return NextResponse.json(Array.isArray(responseData) ? responseData : [responseData])
+    const userData = data.data || data
+    return NextResponse.json(Array.isArray(userData) ? userData : [userData])
   } catch (error) {
     console.error("[v0] API Route: Error:", error)
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })

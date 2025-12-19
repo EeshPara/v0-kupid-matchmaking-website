@@ -12,39 +12,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "user_uid is required" }, { status: 400 })
     }
 
-    console.log("[v0] API Route: Calling webhook to update preferences for user:", body.user_uid)
+    console.log("[v0] API Route: Calling edge function to update preferences for user:", body.user_uid)
 
-    // Call n8n webhook to update user preferences
-    const response = await fetch("https://graysonlee.app.n8n.cloud/webhook/updatepreferences", {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Missing Supabase configuration")
+    }
+
+    // Call Supabase edge function
+    const response = await fetch(`${supabaseUrl}/functions/v1/update-preferences`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify(body),
     })
 
-    console.log("[v0] API Route: Webhook response status:", response.status)
+    console.log("[v0] API Route: Edge function response status:", response.status)
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error("[v0] API Route: CRITICAL - Webhook error:", errorText)
+      console.error("[v0] API Route: CRITICAL - Edge function error:", errorText)
       console.error("[v0] API Route: Failed payload:", body)
       return NextResponse.json({ error: errorText }, { status: response.status })
     }
 
-    // Handle empty response from webhook
-    const responseText = await response.text()
-    let data = { success: true, message: "Preferences updated successfully" }
-
-    if (responseText) {
-      try {
-        data = JSON.parse(responseText)
-      } catch (e) {
-        console.log("[v0] API Route: Webhook returned non-JSON response, treating as success")
-      }
-    }
-
-    console.log("[v0] API Route: SUCCESS - Webhook response:", data)
+    const data = await response.json()
+    console.log("[v0] API Route: SUCCESS - Edge function response:", data)
     console.log("[v0] API Route: Preferences successfully updated for user:", body.user_uid)
 
     return NextResponse.json(data)

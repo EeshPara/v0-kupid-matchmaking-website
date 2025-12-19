@@ -8,7 +8,7 @@ export function Features() {
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="flex h-24 w-24 items-center justify-center">
               <Image
-                src="/images/design-mode/image%2019.png"
+                src="/images/design-mode/image-19.png"
                 alt="Kupid"
                 width={96}
                 height={96}
@@ -24,7 +24,7 @@ export function Features() {
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="flex h-24 w-24 items-center justify-center">
               <Image
-                src="/images/design-mode/image%2018.png"
+                src="/images/design-mode/image-18.png"
                 alt="AI Algorithm"
                 width={96}
                 height={96}
@@ -40,7 +40,7 @@ export function Features() {
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="flex h-24 w-24 items-center justify-center">
               <Image
-                src="/images/design-mode/image%2010.png"
+                src="/images/design-mode/image-10.png"
                 alt="Perfect Match"
                 width={96}
                 height={96}

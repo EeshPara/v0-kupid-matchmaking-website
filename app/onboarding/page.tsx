@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Heart } from "lucide-react"
-import { createBrowserSupabaseClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import Image from "next/image"
 
 interface OnboardingData {
   uid: string
@@ -22,7 +23,6 @@ interface OnboardingData {
   religion: string
   interests: string[]
   dream_date: string
-  budget: string
   instagram_handle: string
   pref_gender: string
   pref_sexual_orientation: string
@@ -30,10 +30,9 @@ interface OnboardingData {
   pref_class_year: string
   pref_race: string
   pref_religion: string
-  pref_budget: string
 }
 
-const TOTAL_STEPS = 16 // Steps 2-17 from original modal
+const TOTAL_STEPS = 15 // Removed budget step
 
 const interestOptions = [
   "art",
@@ -54,9 +53,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
-  const [isCheckingUser, setIsCheckingUser] = useState(true)
   const [error, setError] = useState<string>("")
-  const [userId, setUserId] = useState<string>("")
   const router = useRouter()
 
   const [data, setData] = useState<OnboardingData>({
@@ -71,7 +68,6 @@ export default function OnboardingPage() {
     religion: "",
     interests: [],
     dream_date: "",
-    budget: "",
     instagram_handle: "",
     pref_gender: "",
     pref_sexual_orientation: "",
@@ -79,7 +75,6 @@ export default function OnboardingPage() {
     pref_class_year: "",
     pref_race: "",
     pref_religion: "",
-    pref_budget: "",
   })
 
   const updateData = (field: keyof OnboardingData, value: any) => {
@@ -93,7 +88,123 @@ export default function OnboardingPage() {
     }))
   }
 
+  const validateStep = (currentStep: number): string | null => {
+    switch (currentStep) {
+      case 1: // Name, Class Year, Instagram
+        if (!data.display_name || data.display_name.trim() === "") return "Name is required"
+        if (data.display_name.length < 2) return "Name must be at least 2 characters"
+
+        if (!data.class_year) return "Class year is required"
+        if (!/^\d{4}$/.test(data.class_year)) return "Class year must be a 4-digit number"
+        if (!data.class_year.startsWith("20")) return "Class year must start with 20"
+        const year = parseInt(data.class_year)
+        if (year < 2000 || year > 2050) return "Class year must be between 2000 and 2050"
+
+        if (data.instagram_handle && data.instagram_handle.includes(" ")) {
+          return "Instagram handle cannot contain spaces"
+        }
+        return null
+
+      case 2: // Email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!data.email) return "Email is required"
+        if (!emailRegex.test(data.email)) return "Please enter a valid email address"
+        return null
+
+      case 3: // Gender
+        if (!data.gender) return "Please select your gender"
+        return null
+
+      case 4: // Sexual Orientation
+        if (!data.sexual_orientation) return "Please select your sexual orientation"
+        return null
+
+      case 5: // Age
+        if (!data.age) return "Age is required"
+        if (!/^\d+$/.test(data.age)) return "Age must be a number"
+        const age = parseInt(data.age)
+        if (age < 18 || age > 100) return "Age must be between 18 and 100"
+        return null
+
+      case 6: // Race
+        if (!data.race) return "Please select your race/ethnicity"
+        return null
+
+      case 7: // Religion
+        if (!data.religion) return "Please select your religion"
+        return null
+
+      case 8: // Interests
+        if (data.interests.length === 0) return "Please select at least one interest"
+        return null
+
+      case 9: // Dream Date
+        if (!data.dream_date || data.dream_date.trim() === "") return "Dream date description is required"
+        if (data.dream_date.length < 10) return "Please provide at least 10 characters describing your dream date"
+        return null
+
+      case 10: // Preferred Gender
+        if (!data.pref_gender) return "Please select preferred gender"
+        return null
+
+      case 11: // Preferred Sexual Orientation
+        if (!data.pref_sexual_orientation) return "Please select preferred sexual orientation"
+        return null
+
+      case 12: // Preferred Age Range (optional with validation if provided)
+        if (!data.pref_age) return null // Optional field
+        // Check if it's a single number or a range (e.g., "20-25")
+        if (/^\d+$/.test(data.pref_age)) {
+          const ageVal = parseInt(data.pref_age)
+          if (ageVal < 18 || ageVal > 100) return "Age must be between 18 and 100"
+        } else if (/^\d+-\d+$/.test(data.pref_age)) {
+          const [min, max] = data.pref_age.split("-").map(Number)
+          if (min < 18 || max > 100) return "Age range must be between 18 and 100"
+          if (min >= max) return "Minimum age must be less than maximum age"
+        } else {
+          return "Age must be a number or a range (e.g., 20-25)"
+        }
+        return null
+
+      case 13: // Preferred Class Year (optional with validation if provided)
+        if (!data.pref_class_year) return null // Optional field
+        // Check if it's a single year or a range (e.g., "2024-2026")
+        if (/^\d{4}$/.test(data.pref_class_year)) {
+          if (!data.pref_class_year.startsWith("20")) return "Class year must start with 20"
+          const yearVal = parseInt(data.pref_class_year)
+          if (yearVal < 2000 || yearVal > 2050) return "Class year must be between 2000 and 2050"
+        } else if (/^\d{4}-\d{4}$/.test(data.pref_class_year)) {
+          const [min, max] = data.pref_class_year.split("-")
+          if (!min.startsWith("20") || !max.startsWith("20")) return "Class years must start with 20"
+          if (parseInt(min) >= parseInt(max)) return "Start year must be less than end year"
+          if (parseInt(min) < 2000 || parseInt(max) > 2050) return "Class years must be between 2000 and 2050"
+        } else {
+          return "Class year must be a 4-digit year or a range (e.g., 2024-2026)"
+        }
+        return null
+
+      case 14: // Preferred Race (no validation, optional)
+        return null
+
+      case 15: // Preferred Religion (no validation, optional)
+        return null
+
+      default:
+        return null
+    }
+  }
+
   const handleNext = async () => {
+    // Validate current step before proceeding
+    const validationError = validateStep(step)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    // Clear error if validation passes
+    setError("")
+
     if (step < TOTAL_STEPS) {
       setStep(step + 1)
     } else {
@@ -114,18 +225,16 @@ export default function OnboardingPage() {
     setError("")
 
     try {
-      if (!userId) {
-        throw new Error("User ID not found. Please sign in again.")
-      }
-
-      console.log("[v0] Using user UID from Supabase:", userId)
+      // Generate a new UUID for the user
+      const userId = crypto.randomUUID()
+      console.log("[v0] Generated user UID:", userId)
 
       console.log("[v0] STEP 1/2: Adding user to database...")
       const addUserPayload = {
         uid: userId,
         email: data.email,
         display_name: data.display_name,
-        class_year: Number.parseInt(data.class_year),
+        class_year: data.class_year,
         gender: data.gender,
         sexual_orientation: data.sexual_orientation,
         age: Number.parseInt(data.age),
@@ -133,7 +242,6 @@ export default function OnboardingPage() {
         religion: data.religion,
         interests: data.interests.join(", "),
         dream_date: data.dream_date,
-        budget: data.budget,
         instagram_handle: data.instagram_handle,
       }
 
@@ -155,13 +263,12 @@ export default function OnboardingPage() {
       console.log("[v0] STEP 2/2: UPDATING USER PREFERENCES...")
       const updatePreferencesPayload = {
         user_uid: userId,
-        pref_class_year: Number.parseInt(data.pref_class_year) || Number.parseInt(data.class_year),
+        pref_class_year: data.pref_class_year || data.class_year,
         pref_gender: data.pref_gender || "any",
         pref_sexual_orientation: data.pref_sexual_orientation || "any",
         pref_age: data.pref_age || data.age,
         pref_race: data.pref_race || "Any",
         pref_religion: data.pref_religion || "Any",
-        pref_budget: data.pref_budget || data.budget || "$0-30",
       }
 
       const updatePreferencesResponse = await fetch("/api/update-preferences", {
@@ -184,138 +291,13 @@ export default function OnboardingPage() {
       setIsComplete(true)
 
       setTimeout(() => {
-        router.push("/matches")
+        router.push("/complete")
       }, 2000)
     } catch (err) {
       console.error("[v0] Error during onboarding:", err)
       setError(err instanceof Error ? err.message : "An error occurred")
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    const initUser = async () => {
-      setIsCheckingUser(true)
-      const supabase = createBrowserSupabaseClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (user) {
-        console.log("[v0] User authenticated:", user.email)
-        setUserId(user.id)
-        updateData("email", user.email || "")
-
-        // Check if user already exists in database
-        console.log("[v0] Checking if user already exists in database...")
-        try {
-          const response = await fetch("/api/get-user", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ user_uid: user.id }),
-          })
-
-          const data = await response.json()
-          console.log("[v0] Get user response:", data)
-
-          // If user exists (array with success: true), redirect to matches
-          if (Array.isArray(data) && data.length > 0 && data[0].success === true) {
-            console.log("[v0] User already exists in database, redirecting to matches...")
-            router.push("/matches")
-            return // Keep loading screen while redirecting
-          } else if (data.success === false) {
-            console.log("[v0] User does not exist in database, staying on onboarding page")
-          } else {
-            console.log("[v0] Unexpected response format, staying on onboarding page")
-          }
-        } catch (error) {
-          console.error("[v0] Error checking if user exists:", error)
-          // If there's an error, stay on onboarding page
-        }
-      } else {
-        // No user is signed in, redirect to home page
-        console.log("[v0] No user authenticated, redirecting to home page...")
-        router.push("/")
-        return // Keep loading screen while redirecting
-      }
-
-      setIsCheckingUser(false)
-    }
-
-    initUser()
-  }, [router])
-
-  if (isCheckingUser) {
-    return (
-      <div className="fixed inset-0 z-50 bg-gradient-to-br from-white via-[#FFF5F8] to-white">
-        <div className="flex h-full items-center justify-center">
-          <div className="relative flex flex-col items-center gap-8">
-            {/* Animated spinner circle */}
-            <div className="relative h-32 w-32">
-              {/* Outer rotating ring */}
-              <div
-                className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-[#F58DAA] border-r-[#F9A6BD]"
-                style={{ animationDuration: "1.5s" }}
-              />
-
-              {/* Middle rotating ring - opposite direction */}
-              <div
-                className="absolute inset-2 animate-spin rounded-full border-4 border-transparent border-b-[#F9A6BD] border-l-[#F58DAA]"
-                style={{ animationDuration: "2s", animationDirection: "reverse" }}
-              />
-
-              {/* Center heart */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Heart
-                  className="h-12 w-12 animate-pulse text-[#F58DAA]"
-                  fill="#F58DAA"
-                  style={{ animationDuration: "1.5s" }}
-                />
-              </div>
-            </div>
-
-            {/* Floating hearts decoration */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <Heart
-                className="absolute -left-24 -top-12 h-6 w-6 animate-bounce text-[#F9A6BD] opacity-60"
-                fill="#F9A6BD"
-                style={{ animationDelay: "0s", animationDuration: "2s" }}
-              />
-              <Heart
-                className="absolute -right-24 -top-8 h-5 w-5 animate-bounce text-[#F58DAA] opacity-40"
-                fill="#F58DAA"
-                style={{ animationDelay: "0.5s", animationDuration: "2.5s" }}
-              />
-              <Heart
-                className="absolute -left-20 top-20 h-4 w-4 animate-bounce text-[#ee81a8] opacity-50"
-                fill="#ee81a8"
-                style={{ animationDelay: "1s", animationDuration: "2.2s" }}
-              />
-              <Heart
-                className="absolute -right-20 top-16 h-7 w-7 animate-bounce text-[#F9A6BD] opacity-30"
-                fill="#F9A6BD"
-                style={{ animationDelay: "0.3s", animationDuration: "2.8s" }}
-              />
-            </div>
-
-            {/* Loading text */}
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-[#222222]">Getting things ready...</h2>
-              <p className="mt-2 animate-pulse text-gray-600">Preparing your Kupid experience</p>
-            </div>
-
-            {/* Animated dots */}
-            <div className="flex gap-2">
-              <div className="h-3 w-3 animate-bounce rounded-full bg-[#F58DAA]" style={{ animationDelay: "0s" }} />
-              <div className="h-3 w-3 animate-bounce rounded-full bg-[#F9A6BD]" style={{ animationDelay: "0.2s" }} />
-              <div className="h-3 w-3 animate-bounce rounded-full bg-[#ee81a8]" style={{ animationDelay: "0.4s" }} />
-            </div>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   if (isLoading) {
@@ -363,7 +345,17 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-white p-4">
+      <Link href="/" className="absolute left-6 top-6 transition-all hover:scale-105">
+        <Image
+          src="/images/design-mode/image-19.png"
+          alt="Kupid Logo"
+          width={90}
+          height={90}
+          className="h-[90px] w-[90px]"
+        />
+      </Link>
+
       <div className="relative w-full max-w-lg rounded-3xl bg-white p-8 shadow-2xl">
         <Heart className="absolute -right-3 -top-3 h-8 w-8 rotate-12 text-[#F58DAA]" fill="#F58DAA" />
 
@@ -583,27 +575,6 @@ export default function OnboardingPage() {
 
           {step === 10 && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-[#222222]">What's your budget?</h2>
-              <div className="space-y-3">
-                {["$0-30", "$30-60", "$60+"].map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => updateData("budget", option)}
-                    className={`w-full rounded-full border-2 py-4 text-lg font-medium transition-all ${
-                      data.budget === option
-                        ? "border-[#F58DAA] bg-[#F58DAA] text-white"
-                        : "border-gray-300 hover:border-[#F58DAA]"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 11 && (
-            <div className="space-y-6">
               <div className="rounded-xl bg-gradient-to-r from-[#F58DAA]/10 to-[#F9A6BD]/10 p-4">
                 <p className="text-center text-sm font-medium text-[#222222]">Now let's find your perfect match! 💕</p>
               </div>
@@ -626,7 +597,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 12 && (
+          {step === 11 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-[#222222]">Preferred Sexual Orientation</h2>
               <div className="flex flex-wrap gap-3">
@@ -647,7 +618,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 13 && (
+          {step === 12 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-[#222222]">Preferred Age Range</h2>
               <Input
@@ -661,7 +632,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 14 && (
+          {step === 13 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-[#222222]">Preferred Class Year</h2>
               <Input
@@ -675,7 +646,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 15 && (
+          {step === 14 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-[#222222]">Preferred Race / Ethnicity</h2>
               <Select value={data.pref_race} onValueChange={(value) => updateData("pref_race", value)}>
@@ -698,7 +669,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {step === 16 && (
+          {step === 15 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-[#222222]">Preferred Religion</h2>
               <Select value={data.pref_religion} onValueChange={(value) => updateData("pref_religion", value)}>

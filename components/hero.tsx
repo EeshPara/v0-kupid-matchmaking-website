@@ -1,15 +1,14 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { OnboardingModal } from "./onboarding-modal"
+import { useRouter } from "next/navigation"
 
 export function Hero() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const router = useRouter()
 
   const handleJoinClick = () => {
-    setIsModalOpen(true)
+    router.push("/onboarding")
   }
 
   return (
@@ -42,7 +41,7 @@ export function Hero() {
             {/* Right side - Polaroid photos */}
             <div className="relative h-[650px]">
               <Image
-                src="/images/design-mode/image%2020.png"
+                src="/images/design-mode/image-20.png"
                 alt=""
                 width={210}
                 height={105}
@@ -52,7 +51,7 @@ export function Hero() {
               <div className="absolute left-0 top-4 z-30 w-[350px] -translate-y-2 rotate-[-5deg] transform rounded-[24px] bg-[#ee81a8] p-6 shadow-[0_20px_40px_rgba(0,0,0,0.15)]">
                 <div className="overflow-hidden rounded-2xl bg-white p-3">
                   <Image
-                    src="/images/design-mode/image%2026.png"
+                    src="/images/design-mode/image-26.png"
                     alt="Friends socializing at Kupid event"
                     width={350}
                     height={350}
@@ -65,7 +64,7 @@ export function Hero() {
               <div className="absolute left-[180px] top-24 z-20 w-[350px] rotate-[5deg] transform rounded-[24px] bg-[#f8a5c2] p-6 shadow-[0_20px_40px_rgba(0,0,0,0.15)]">
                 <div className="overflow-hidden rounded-2xl bg-white p-3">
                   <Image
-                    src="/images/design-mode/image%2025.png"
+                    src="/images/design-mode/image-25.png"
                     alt="People meeting at event"
                     width={350}
                     height={350}
@@ -78,7 +77,7 @@ export function Hero() {
               <div className="absolute left-[340px] top-52 z-10 w-[350px] rotate-[10deg] transform rounded-[24px] bg-[#fcc02d] p-6 shadow-[0_20px_40px_rgba(0,0,0,0.15)]">
                 <div className="overflow-hidden rounded-2xl bg-white p-3">
                   <Image
-                    src="/images/design-mode/image%2028.png"
+                    src="/images/design-mode/image-28.png"
                     alt="Happy person celebrating"
                     width={350}
                     height={350}
@@ -91,8 +90,6 @@ export function Hero() {
           </div>
         </div>
       </section>
-
-      <OnboardingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </>
   )
 }
