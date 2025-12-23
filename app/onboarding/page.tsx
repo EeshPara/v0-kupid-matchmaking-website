@@ -269,6 +269,17 @@ export default function OnboardingPage() {
     setError("")
 
     try {
+      // Get the session token for authenticated requests
+      const supabase = createBrowserSupabaseClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        console.error("[v0] No session found during submission")
+        setError("Authentication required. Please log in again.")
+        setIsLoading(false)
+        return
+      }
+
       console.log("[v0] Using authenticated user ID:", userId)
       console.log("[v0] Using authenticated email:", userEmail)
 
@@ -298,6 +309,7 @@ export default function OnboardingPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(addUserPayload),
       })
@@ -324,6 +336,7 @@ export default function OnboardingPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(updatePreferencesPayload),
       })

@@ -12,21 +12,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "user_uid is required" }, { status: 400 })
     }
 
+    // Get the Authorization header from the request
+    const authHeader = request.headers.get("Authorization")
+
+    if (!authHeader) {
+      console.error("[v0] API Route: Missing Authorization header")
+      return NextResponse.json({ error: "Unauthorized - Missing token" }, { status: 401 })
+    }
+
     console.log("[v0] API Route: Fetching user data for:", body.user_uid)
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl) {
       throw new Error("Missing Supabase configuration")
     }
 
-    // Call Supabase edge function
+    console.log("[v0] API Route: Forwarding request with user's JWT token")
+
+    // Call Supabase edge function with the user's JWT token
     const response = await fetch(`${supabaseUrl}/functions/v1/get-user`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseAnonKey}`,
+        "Authorization": authHeader, // Forward the user's JWT token
       },
       body: JSON.stringify(body),
     })
