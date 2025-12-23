@@ -25,14 +25,18 @@ export async function POST(request: NextRequest) {
     })
 
     console.log("[v0] API Route: Edge function response status:", response.status)
+    console.log("[v0] API Route: Response headers:", Object.fromEntries(response.headers.entries()))
+
+    const responseText = await response.text()
+    console.log("[v0] API Route: Raw response:", responseText)
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error("[v0] API Route: Edge function error:", errorText)
-      return NextResponse.json({ error: errorText }, { status: response.status })
+      console.error("[v0] API Route: Edge function error - Status:", response.status)
+      console.error("[v0] API Route: Edge function error - Body:", responseText)
+      return NextResponse.json({ error: responseText }, { status: response.status })
     }
 
-    const data = await response.json()
+    const data = JSON.parse(responseText)
     console.log("[v0] API Route: Edge function success:", data)
 
     return NextResponse.json(data)

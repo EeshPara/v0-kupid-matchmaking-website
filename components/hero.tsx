@@ -1,14 +1,15 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { EmailAuthModal } from "@/components/email-auth-modal"
 
 export function Hero() {
-  const router = useRouter()
+  const [showEmailModal, setShowEmailModal] = useState(false)
 
   const handleJoinClick = () => {
-    router.push("/onboarding")
+    setShowEmailModal(true)
   }
 
   return (
@@ -90,6 +91,8 @@ export function Hero() {
           </div>
         </div>
       </section>
+
+      <EmailAuthModal isOpen={showEmailModal} onClose={() => setShowEmailModal(false)} />
     </>
   )
 }

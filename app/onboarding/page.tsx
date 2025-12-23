@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,10 +10,11 @@ import { Heart } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import { createBrowserSupabaseClient } from "@/lib/supabase/client"
 
 interface OnboardingData {
   uid: string
-  email: string
+  phone_number: string
   display_name: string
   class_year: string
   gender: string
@@ -30,6 +31,7 @@ interface OnboardingData {
   pref_class_year: string
   pref_race: string
   pref_religion: string
+  agreed_to_terms: boolean
 }
 
 const TOTAL_STEPS = 15 // Removed budget step
@@ -54,11 +56,14 @@ export default function OnboardingPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
   const [error, setError] = useState<string>("")
+  const [authChecked, setAuthChecked] = useState(false)
+  const [userEmail, setUserEmail] = useState<string>("")
+  const [userId, setUserId] = useState<string>("")
   const router = useRouter()
 
   const [data, setData] = useState<OnboardingData>({
     uid: "",
-    email: "",
+    phone_number: "",
     display_name: "",
     class_year: "",
     gender: "",
@@ -75,7 +80,43 @@ export default function OnboardingPage() {
     pref_class_year: "",
     pref_race: "",
     pref_religion: "",
+    agreed_to_terms: false,
   })
+
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        console.log("[Onboarding] Checking authentication...")
+        const supabase = createBrowserSupabaseClient()
+        const { data: { session }, error } = await supabase.auth.getSession()
+
+        if (error) {
+          console.error("[Onboarding] Session error:", error)
+          router.push("/")
+          return
+        }
+
+        if (!session) {
+          console.log("[Onboarding] No session found, redirecting to home")
+          router.push("/")
+          return
+        }
+
+        console.log("[Onboarding] Session found for user:", session.user.id)
+        console.log("[Onboarding] User email:", session.user.email)
+
+        setUserId(session.user.id)
+        setUserEmail(session.user.email || "")
+        setAuthChecked(true)
+      } catch (error) {
+        console.error("[Onboarding] Error checking auth:", error)
+        router.push("/")
+      }
+    }
+
+    checkAuth()
+  }, [router])
 
   const updateData = (field: keyof OnboardingData, value: any) => {
     setData((prev) => ({ ...prev, [field]: value }))
@@ -105,10 +146,13 @@ export default function OnboardingPage() {
         }
         return null
 
-      case 2: // Email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!data.email) return "Email is required"
-        if (!emailRegex.test(data.email)) return "Please enter a valid email address"
+      case 2: // Phone Number and TOS
+        const phoneRegex = /^\+?1?\d{10,14}$/
+        if (!data.phone_number) return "Phone number is required"
+        if (!phoneRegex.test(data.phone_number.replace(/[\s\-\(\)]/g, ""))) {
+          return "Please enter a valid phone number"
+        }
+        if (!data.agreed_to_terms) return "You must agree to the Terms of Service and Privacy Policy"
         return null
 
       case 3: // Gender
@@ -225,14 +269,16 @@ export default function OnboardingPage() {
     setError("")
 
     try {
-      // Generate a new UUID for the user
-      const userId = crypto.randomUUID()
-      console.log("[v0] Generated user UID:", userId)
+      console.log("[v0] Using authenticated user ID:", userId)
+      console.log("[v0] Using authenticated email:", userEmail)
 
       console.log("[v0] STEP 1/2: Adding user to database...")
+      console.log("[v0] Current form data:", JSON.stringify(data, null, 2))
+
       const addUserPayload = {
-        uid: userId,
-        email: data.email,
+        uid: userId, // Use authenticated user ID
+        email: userEmail, // Use authenticated email
+        phone_number: data.phone_number,
         display_name: data.display_name,
         class_year: data.class_year,
         gender: data.gender,
@@ -243,7 +289,10 @@ export default function OnboardingPage() {
         interests: data.interests.join(", "),
         dream_date: data.dream_date,
         instagram_handle: data.instagram_handle,
+        onboarding_completed: true,
       }
+
+      console.log("[v0] Payload being sent:", JSON.stringify(addUserPayload, null, 2))
 
       const addUserResponse = await fetch("/api/add-user", {
         method: "POST",
@@ -300,6 +349,22 @@ export default function OnboardingPage() {
     }
   }
 
+  // Show loading while checking auth
+  if (!authChecked) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative">
+            <Heart className="h-16 w-16 animate-pulse text-[#F58DAA]" fill="#F58DAA" />
+            <Heart className="absolute -right-4 -top-2 h-8 w-8 animate-bounce text-[#F9A6BD]" fill="#F9A6BD" />
+            <Heart className="absolute -left-4 top-4 h-6 w-6 animate-pulse text-[#ee81a8]" fill="#ee81a8" />
+          </div>
+          <p className="text-2xl font-semibold text-[#222222]">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
@@ -331,8 +396,8 @@ export default function OnboardingPage() {
               <span className="text-gray-900">{data.display_name}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="font-medium text-gray-700">Email:</span>
-              <span className="text-gray-900">{data.email}</span>
+              <span className="font-medium text-gray-700">Phone:</span>
+              <span className="text-gray-900">{data.phone_number}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-700">Class Year:</span>
@@ -421,20 +486,49 @@ export default function OnboardingPage() {
 
           {step === 2 && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-[#222222]">What's your email?</h2>
+              <h2 className="text-2xl font-bold text-[#222222]">What's your phone number?</h2>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="email" className="text-base font-medium">
-                    Email Address
+                  <Label htmlFor="phone_number" className="text-base font-medium">
+                    Phone Number
                   </Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={data.email}
-                    onChange={(e) => updateData("email", e.target.value)}
-                    placeholder="your.email@example.com"
+                    id="phone_number"
+                    type="tel"
+                    value={data.phone_number}
+                    onChange={(e) => updateData("phone_number", e.target.value)}
+                    placeholder="(555) 123-4567"
                     className="mt-2 rounded-xl border-2 py-6 text-lg"
                   />
+                </div>
+                <div className="flex items-start gap-3 rounded-xl bg-gray-50 p-4">
+                  <input
+                    id="terms"
+                    type="checkbox"
+                    checked={data.agreed_to_terms}
+                    onChange={(e) => updateData("agreed_to_terms", e.target.checked)}
+                    className="mt-1 h-5 w-5 cursor-pointer rounded border-2 border-gray-300 text-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA] focus:ring-offset-2"
+                  />
+                  <label htmlFor="terms" className="cursor-pointer text-sm text-gray-700">
+                    I agree to the{" "}
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-[#F58DAA] underline hover:text-[#F9A6BD]"
+                    >
+                      Terms of Service
+                    </a>{" "}
+                    and{" "}
+                    <a
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-[#F58DAA] underline hover:text-[#F9A6BD]"
+                    >
+                      Privacy Policy
+                    </a>
+                  </label>
                 </div>
               </div>
             </div>
