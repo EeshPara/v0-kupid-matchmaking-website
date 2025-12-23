@@ -36,7 +36,7 @@ export function Header() {
               onClick={() => setShowEmailModal(true)}
               className="rounded-full bg-[#F58DAA] px-8 py-3 text-base font-semibold text-white shadow-[0_4px_12px_rgba(245,141,170,0.3)] transition-all hover:scale-105 hover:bg-[#F9A6BD]"
             >
-              Join
+              Join/Login
             </button>
           </nav>
         </div>

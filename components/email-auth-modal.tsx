@@ -72,8 +72,8 @@ export function EmailAuthModal({ isOpen, onClose }: EmailAuthModalProps) {
 
         {!magicLinkSent ? (
           <>
-            <h2 className="mb-2 text-2xl font-bold text-[#222222]">Join Kupid Matchmaker</h2>
-            <p className="mb-6 text-gray-600">Enter your email to get started with a magic link</p>
+            <h2 className="mb-2 text-2xl font-bold text-[#222222]">Join/Login Kupid Matchmaker</h2>
+            <p className="mb-6 text-gray-600">Enter your email to log back in or get started with a magic link</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
