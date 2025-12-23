@@ -417,6 +417,22 @@ export default function OnboardingPage() {
               <span className="text-gray-900">{data.class_year}</span>
             </div>
           </div>
+
+          <div className="flex gap-4">
+            <Button
+              onClick={() => router.push("/")}
+              variant="outline"
+              className="flex-1 rounded-full border-2 border-[#F58DAA] bg-transparent py-6 text-lg font-semibold text-[#F58DAA] hover:bg-[#F58DAA]/10"
+            >
+              Exit
+            </Button>
+            <Button
+              onClick={() => router.push("/profiles")}
+              className="flex-1 rounded-full bg-[#F58DAA] py-6 text-lg font-semibold text-white shadow-[0_4px_12px_rgba(245,141,170,0.3)] transition-all hover:scale-105 hover:bg-[#F9A6BD]"
+            >
+              Continue to Profile
+            </Button>
+          </div>
         </div>
       </div>
     )

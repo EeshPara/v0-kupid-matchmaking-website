@@ -97,13 +97,22 @@ export default function CompletePage() {
             </div>
           </div>
 
-          {/* Action button */}
-          <Button
-            onClick={() => router.push("/")}
-            className="rounded-full bg-[#F58DAA] px-10 py-6 text-lg font-semibold text-white hover:bg-[#F9A6BD] transition-all hover:scale-105 shadow-lg"
-          >
-            Back to Home
-          </Button>
+          {/* Action buttons */}
+          <div className="flex gap-4 justify-center">
+            <Button
+              onClick={() => router.push("/")}
+              variant="outline"
+              className="rounded-full border-2 border-[#F58DAA] bg-transparent px-10 py-6 text-lg font-semibold text-[#F58DAA] hover:bg-[#F58DAA]/10 transition-all hover:scale-105"
+            >
+              Exit
+            </Button>
+            <Button
+              onClick={() => router.push("/profiles")}
+              className="rounded-full bg-[#F58DAA] px-10 py-6 text-lg font-semibold text-white hover:bg-[#F9A6BD] transition-all hover:scale-105 shadow-lg"
+            >
+              Continue to Profile
+            </Button>
+          </div>
 
           {/* Footer note */}
           <p className="mt-8 text-sm text-gray-500">

@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Heart, LogOut, Sparkles, CheckCircle2, User, Settings } from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
 
 const interestOptions = [
   "art",
@@ -33,6 +36,7 @@ export default function ProfilesPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string>("")
   const [successMessage, setSuccessMessage] = useState<string>("")
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -153,10 +157,21 @@ export default function ProfilesPage() {
     }))
   }
 
+  const handleSignOut = async () => {
+    try {
+      const supabase = createBrowserSupabaseClient()
+      await supabase.auth.signOut()
+      router.push("/")
+    } catch (error) {
+      console.error("[Profiles] Error signing out:", error)
+    }
+  }
+
   const handleSubmit = async () => {
     setIsSaving(true)
     setError("")
     setSuccessMessage("")
+    setShowSuccessAnimation(false)
 
     try {
       console.log("[Profiles] Updating user data...")
@@ -223,12 +238,14 @@ export default function ProfilesPage() {
       console.log("[Profiles] Preferences updated successfully")
 
       setSuccessMessage("Profile updated successfully!")
+      setShowSuccessAnimation(true)
       setIsSaving(false)
 
-      // Clear success message after 3 seconds
+      // Clear success message after 5 seconds
       setTimeout(() => {
         setSuccessMessage("")
-      }, 3000)
+        setShowSuccessAnimation(false)
+      }, 5000)
     } catch (err) {
       console.error("[Profiles] Error updating profile:", err)
       setError(err instanceof Error ? err.message : "An error occurred")
@@ -238,8 +255,9 @@ export default function ProfilesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-[#FFF5F8] to-white">
         <div className="text-center">
+          <Heart className="mx-auto mb-4 h-16 w-16 animate-pulse text-[#F58DAA]" fill="#F58DAA" />
           <div className="mb-4 inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-[#F58DAA] border-r-transparent"></div>
           <p className="text-lg text-gray-600">Loading your profile...</p>
         </div>
@@ -248,42 +266,112 @@ export default function ProfilesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-white via-[#FFF5F8] to-white">
+      {/* Success Animation Overlay */}
+      {showSuccessAnimation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="relative">
+            <div className="absolute inset-0 animate-ping rounded-full bg-[#F58DAA] opacity-20" />
+            <div className="relative flex flex-col items-center justify-center gap-6 rounded-3xl bg-white p-12 shadow-2xl">
+              <div className="relative">
+                <div className="absolute inset-0 animate-ping rounded-full bg-green-500 opacity-20" />
+                <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600">
+                  <CheckCircle2 className="h-12 w-12 text-white" strokeWidth={3} />
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="mb-2 text-3xl font-bold text-[#222222]">Success!</h3>
+                <p className="text-lg text-gray-600">Your profile has been updated</p>
+              </div>
+              <div className="flex gap-2">
+                <Heart className="h-6 w-6 animate-bounce text-[#F58DAA]" fill="#F58DAA" />
+                <Heart className="h-6 w-6 animate-bounce text-[#F9A6BD]" fill="#F9A6BD" style={{ animationDelay: "0.1s" }} />
+                <Heart className="h-6 w-6 animate-bounce text-[#ee81a8]" fill="#ee81a8" style={{ animationDelay: "0.2s" }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="w-full border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+        <div className="container mx-auto flex items-center justify-between px-6 py-6">
+          <Link href="/" className="flex items-center transition-all hover:scale-105">
+            <Image
+              src="/images/design-mode/image-19.png"
+              alt="Kupid Logo"
+              width={90}
+              height={90}
+              className="h-[90px] w-[90px]"
+            />
+          </Link>
+
+          <Button
+            onClick={handleSignOut}
+            variant="outline"
+            className="flex items-center gap-2 rounded-full border-2 border-gray-300 px-6 py-3 text-base font-medium transition-all hover:border-[#F58DAA] hover:bg-[#F58DAA]/10 hover:text-[#F58DAA]"
+          >
+            <LogOut className="h-5 w-5" />
+            Sign Out
+          </Button>
+        </div>
+      </header>
+
       <div className="container mx-auto px-6 py-12">
-        <div className="mx-auto max-w-4xl">
-          <h1 className="mb-4 text-4xl font-bold text-[#222222]">Your Profile</h1>
-          <p className="mb-8 text-xl text-gray-600">
-            Update your information and preferences
-          </p>
+        <div className="mx-auto max-w-5xl">
+          {/* Hero Section */}
+          <div className="mb-12 text-center">
+            <div className="mb-4 flex items-center justify-center gap-3">
+              <Sparkles className="h-10 w-10 text-[#F58DAA]" />
+              <h1 className="text-5xl font-bold text-[#222222]">Your Profile</h1>
+              <Sparkles className="h-10 w-10 text-[#F58DAA]" />
+            </div>
+            <p className="text-xl text-gray-600">
+              Keep your information up to date to find your perfect match
+            </p>
+          </div>
 
           {userEmail && (
-            <div className="mb-8 rounded-2xl bg-gray-50 p-6">
-              <p className="text-sm text-gray-500">Signed in as</p>
-              <p className="text-lg font-semibold text-[#222222]">{userEmail}</p>
+            <div className="mb-8 rounded-2xl bg-gradient-to-r from-[#F58DAA]/10 to-[#F9A6BD]/10 p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F58DAA]">
+                    <User className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Signed in as</p>
+                    <p className="text-lg font-semibold text-[#222222]">{userEmail}</p>
+                  </div>
+                </div>
+                <Heart className="h-8 w-8 animate-pulse text-[#F58DAA]" fill="#F58DAA" />
+              </div>
             </div>
           )}
 
           {/* Error and Success Messages */}
           {error && (
-            <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-600">
+            <div className="mb-6 rounded-xl bg-red-50 p-4 text-center text-sm text-red-600 shadow-sm">
               {error}
             </div>
           )}
 
-          {successMessage && (
-            <div className="mb-6 rounded-xl bg-green-50 p-4 text-sm text-green-600">
+          {successMessage && !showSuccessAnimation && (
+            <div className="mb-6 rounded-xl bg-green-50 p-4 text-center text-sm text-green-600 shadow-sm">
               {successMessage}
             </div>
           )}
 
           {/* User Information Section */}
-          <div className="mb-8 rounded-2xl border-2 border-gray-200 bg-white p-8">
-            <h2 className="mb-6 text-2xl font-bold text-[#222222]">Personal Information</h2>
+          <div className="mb-8 rounded-3xl border-2 border-gray-100 bg-white p-10 shadow-xl">
+            <div className="mb-8 flex items-center gap-3">
+              <User className="h-7 w-7 text-[#F58DAA]" />
+              <h2 className="text-3xl font-bold text-[#222222]">Personal Information</h2>
+            </div>
 
             <div className="space-y-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <Label htmlFor="display_name" className="text-base font-medium">
+                  <Label htmlFor="display_name" className="text-base font-semibold text-gray-700">
                     Name
                   </Label>
                   <Input
@@ -291,12 +379,12 @@ export default function ProfilesPage() {
                     value={formData.display_name}
                     onChange={(e) => updateFormData("display_name", e.target.value)}
                     placeholder="Enter your name"
-                    className="mt-2 rounded-xl border-2 py-6 text-lg"
+                    className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="phone_number" className="text-base font-medium">
+                  <Label htmlFor="phone_number" className="text-base font-semibold text-gray-700">
                     Phone Number
                   </Label>
                   <Input
@@ -304,14 +392,14 @@ export default function ProfilesPage() {
                     value={formData.phone_number}
                     onChange={(e) => updateFormData("phone_number", e.target.value)}
                     placeholder="(555) 123-4567"
-                    className="mt-2 rounded-xl border-2 py-6 text-lg"
+                    className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <Label htmlFor="class_year" className="text-base font-medium">
+                  <Label htmlFor="class_year" className="text-base font-semibold text-gray-700">
                     Class Year
                   </Label>
                   <Input
@@ -319,12 +407,12 @@ export default function ProfilesPage() {
                     value={formData.class_year}
                     onChange={(e) => updateFormData("class_year", e.target.value)}
                     placeholder="e.g., 2025"
-                    className="mt-2 rounded-xl border-2 py-6 text-lg"
+                    className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="age" className="text-base font-medium">
+                  <Label htmlFor="age" className="text-base font-semibold text-gray-700">
                     Age
                   </Label>
                   <Input
@@ -333,7 +421,7 @@ export default function ProfilesPage() {
                     value={formData.age}
                     onChange={(e) => updateFormData("age", e.target.value)}
                     placeholder="Enter your age"
-                    className="mt-2 rounded-xl border-2 py-6 text-lg"
+                    className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20"
                     min="18"
                     max="100"
                   />
@@ -341,7 +429,7 @@ export default function ProfilesPage() {
               </div>
 
               <div>
-                <Label htmlFor="instagram_handle" className="text-base font-medium">
+                <Label htmlFor="instagram_handle" className="text-base font-semibold text-gray-700">
                   Instagram Handle
                 </Label>
                 <Input
@@ -349,15 +437,15 @@ export default function ProfilesPage() {
                   value={formData.instagram_handle}
                   onChange={(e) => updateFormData("instagram_handle", e.target.value)}
                   placeholder="e.g., your.username"
-                  className="mt-2 rounded-xl border-2 py-6 text-lg"
+                  className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20"
                 />
               </div>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <Label className="text-base font-medium">Gender</Label>
+                  <Label className="text-base font-semibold text-gray-700">Gender</Label>
                   <Select value={formData.gender} onValueChange={(value) => updateFormData("gender", value)}>
-                    <SelectTrigger className="mt-2 rounded-xl border-2 py-6 text-lg">
+                    <SelectTrigger className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20">
                       <SelectValue placeholder="Select your gender" />
                     </SelectTrigger>
                     <SelectContent>
@@ -368,12 +456,12 @@ export default function ProfilesPage() {
                 </div>
 
                 <div>
-                  <Label className="text-base font-medium">Sexual Orientation</Label>
+                  <Label className="text-base font-semibold text-gray-700">Sexual Orientation</Label>
                   <Select
                     value={formData.sexual_orientation}
                     onValueChange={(value) => updateFormData("sexual_orientation", value)}
                   >
-                    <SelectTrigger className="mt-2 rounded-xl border-2 py-6 text-lg">
+                    <SelectTrigger className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20">
                       <SelectValue placeholder="Select your orientation" />
                     </SelectTrigger>
                     <SelectContent>
@@ -389,9 +477,9 @@ export default function ProfilesPage() {
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <Label className="text-base font-medium">Race / Ethnicity</Label>
+                  <Label className="text-base font-semibold text-gray-700">Race / Ethnicity</Label>
                   <Select value={formData.race} onValueChange={(value) => updateFormData("race", value)}>
-                    <SelectTrigger className="mt-2 rounded-xl border-2 py-6 text-lg">
+                    <SelectTrigger className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20">
                       <SelectValue placeholder="Select your race/ethnicity" />
                     </SelectTrigger>
                     <SelectContent>
@@ -409,9 +497,9 @@ export default function ProfilesPage() {
                 </div>
 
                 <div>
-                  <Label className="text-base font-medium">Religion</Label>
+                  <Label className="text-base font-semibold text-gray-700">Religion</Label>
                   <Select value={formData.religion} onValueChange={(value) => updateFormData("religion", value)}>
-                    <SelectTrigger className="mt-2 rounded-xl border-2 py-6 text-lg">
+                    <SelectTrigger className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20">
                       <SelectValue placeholder="Select your religion" />
                     </SelectTrigger>
                     <SelectContent>
@@ -428,7 +516,7 @@ export default function ProfilesPage() {
               </div>
 
               <div>
-                <Label className="text-base font-medium">Interests</Label>
+                <Label className="text-base font-semibold text-gray-700">Interests</Label>
                 <p className="mb-3 mt-1 text-sm text-gray-500">Select all that apply</p>
                 <div className="flex flex-wrap gap-3">
                   {interestOptions.map((option) => (
@@ -438,8 +526,8 @@ export default function ProfilesPage() {
                       onClick={() => toggleInterest(option)}
                       className={`rounded-full border-2 px-6 py-3 text-base font-medium transition-all ${
                         formData.interests.includes(option)
-                          ? "border-[#F58DAA] bg-[#F58DAA] text-white"
-                          : "border-gray-300 hover:border-[#F58DAA]"
+                          ? "border-[#F58DAA] bg-[#F58DAA] text-white shadow-lg shadow-[#F58DAA]/30"
+                          : "border-gray-300 hover:border-[#F58DAA] hover:bg-[#F58DAA]/5"
                       }`}
                     >
                       {option.charAt(0).toUpperCase() + option.slice(1)}
@@ -449,7 +537,7 @@ export default function ProfilesPage() {
               </div>
 
               <div>
-                <Label htmlFor="dream_date" className="text-base font-medium">
+                <Label htmlFor="dream_date" className="text-base font-semibold text-gray-700">
                   Dream Date Description
                 </Label>
                 <Textarea
@@ -457,25 +545,28 @@ export default function ProfilesPage() {
                   value={formData.dream_date}
                   onChange={(e) => updateFormData("dream_date", e.target.value)}
                   placeholder="Describe your dream date..."
-                  className="mt-2 min-h-[120px] rounded-xl border-2 text-lg"
+                  className="mt-2 min-h-[120px] rounded-xl border-2 border-gray-200 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20"
                 />
               </div>
             </div>
           </div>
 
           {/* Preferences Section */}
-          <div className="mb-8 rounded-2xl border-2 border-gray-200 bg-white p-8">
-            <h2 className="mb-6 text-2xl font-bold text-[#222222]">Match Preferences</h2>
+          <div className="mb-8 rounded-3xl border-2 border-gray-100 bg-white p-10 shadow-xl">
+            <div className="mb-8 flex items-center gap-3">
+              <Settings className="h-7 w-7 text-[#F58DAA]" />
+              <h2 className="text-3xl font-bold text-[#222222]">Match Preferences</h2>
+            </div>
 
             <div className="space-y-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <Label className="text-base font-medium">Preferred Gender</Label>
+                  <Label className="text-base font-semibold text-gray-700">Preferred Gender</Label>
                   <Select
                     value={formData.pref_gender}
                     onValueChange={(value) => updateFormData("pref_gender", value)}
                   >
-                    <SelectTrigger className="mt-2 rounded-xl border-2 py-6 text-lg">
+                    <SelectTrigger className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20">
                       <SelectValue placeholder="Select preferred gender" />
                     </SelectTrigger>
                     <SelectContent>
@@ -487,12 +578,12 @@ export default function ProfilesPage() {
                 </div>
 
                 <div>
-                  <Label className="text-base font-medium">Preferred Sexual Orientation</Label>
+                  <Label className="text-base font-semibold text-gray-700">Preferred Sexual Orientation</Label>
                   <Select
                     value={formData.pref_sexual_orientation}
                     onValueChange={(value) => updateFormData("pref_sexual_orientation", value)}
                   >
-                    <SelectTrigger className="mt-2 rounded-xl border-2 py-6 text-lg">
+                    <SelectTrigger className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20">
                       <SelectValue placeholder="Select preferred orientation" />
                     </SelectTrigger>
                     <SelectContent>
@@ -508,7 +599,7 @@ export default function ProfilesPage() {
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <Label htmlFor="pref_age" className="text-base font-medium">
+                  <Label htmlFor="pref_age" className="text-base font-semibold text-gray-700">
                     Preferred Age Range
                   </Label>
                   <Input
@@ -516,13 +607,13 @@ export default function ProfilesPage() {
                     value={formData.pref_age}
                     onChange={(e) => updateFormData("pref_age", e.target.value)}
                     placeholder="e.g., 21-25 or 22"
-                    className="mt-2 rounded-xl border-2 py-6 text-lg"
+                    className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20"
                   />
                   <p className="mt-1 text-sm text-gray-500">Enter an age range or specific age</p>
                 </div>
 
                 <div>
-                  <Label htmlFor="pref_class_year" className="text-base font-medium">
+                  <Label htmlFor="pref_class_year" className="text-base font-semibold text-gray-700">
                     Preferred Class Year
                   </Label>
                   <Input
@@ -530,7 +621,7 @@ export default function ProfilesPage() {
                     value={formData.pref_class_year}
                     onChange={(e) => updateFormData("pref_class_year", e.target.value)}
                     placeholder="e.g., 2025 or 2024-2026"
-                    className="mt-2 rounded-xl border-2 py-6 text-lg"
+                    className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20"
                   />
                   <p className="mt-1 text-sm text-gray-500">Enter a specific year or range</p>
                 </div>
@@ -538,9 +629,9 @@ export default function ProfilesPage() {
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <Label className="text-base font-medium">Preferred Race / Ethnicity</Label>
+                  <Label className="text-base font-semibold text-gray-700">Preferred Race / Ethnicity</Label>
                   <Select value={formData.pref_race} onValueChange={(value) => updateFormData("pref_race", value)}>
-                    <SelectTrigger className="mt-2 rounded-xl border-2 py-6 text-lg">
+                    <SelectTrigger className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20">
                       <SelectValue placeholder="Select preference" />
                     </SelectTrigger>
                     <SelectContent>
@@ -559,12 +650,12 @@ export default function ProfilesPage() {
                 </div>
 
                 <div>
-                  <Label className="text-base font-medium">Preferred Religion</Label>
+                  <Label className="text-base font-semibold text-gray-700">Preferred Religion</Label>
                   <Select
                     value={formData.pref_religion}
                     onValueChange={(value) => updateFormData("pref_religion", value)}
                   >
-                    <SelectTrigger className="mt-2 rounded-xl border-2 py-6 text-lg">
+                    <SelectTrigger className="mt-2 rounded-xl border-2 border-gray-200 py-6 text-lg transition-all focus:border-[#F58DAA] focus:ring-2 focus:ring-[#F58DAA]/20">
                       <SelectValue placeholder="Select preference" />
                     </SelectTrigger>
                     <SelectContent>
@@ -584,14 +675,39 @@ export default function ProfilesPage() {
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end">
+          <div className="flex justify-center">
             <Button
               onClick={handleSubmit}
               disabled={isSaving}
-              className="rounded-full bg-[#F58DAA] px-12 py-6 text-lg font-semibold text-white shadow-[0_4px_12px_rgba(245,141,170,0.3)] transition-all hover:scale-105 hover:bg-[#F9A6BD] disabled:opacity-50 disabled:hover:scale-100"
+              className="group relative overflow-hidden rounded-full bg-gradient-to-r from-[#F58DAA] to-[#F9A6BD] px-16 py-7 text-xl font-bold text-white shadow-2xl shadow-[#F58DAA]/40 transition-all hover:scale-105 hover:shadow-[#F58DAA]/60 disabled:opacity-50 disabled:hover:scale-100"
             >
-              {isSaving ? "Saving..." : "Save Changes"}
+              <span className="relative z-10 flex items-center gap-3">
+                {isSaving ? (
+                  <>
+                    <div className="h-6 w-6 animate-spin rounded-full border-4 border-white border-r-transparent"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Heart className="h-6 w-6" fill="white" />
+                    Save Changes
+                    <Sparkles className="h-6 w-6" />
+                  </>
+                )}
+              </span>
+              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 group-hover:translate-x-full"></div>
             </Button>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-12 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <Heart className="h-5 w-5 animate-pulse text-[#F58DAA]" fill="#F58DAA" />
+              <p className="text-sm text-gray-500">
+                Your perfect match is waiting for you
+              </p>
+              <Heart className="h-5 w-5 animate-pulse text-[#F58DAA]" fill="#F58DAA" style={{ animationDelay: "0.5s" }} />
+            </div>
           </div>
         </div>
       </div>
